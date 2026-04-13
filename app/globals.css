@@ -1,0 +1,335 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ── Fidelapp Theme Variables ─────────────────────────────── */
+:root {
+  /* Shadcn compat */
+  --background: #0D0B09;
+  --foreground: #F5F0EB;
+  --card: rgba(255,255,255,0.04);
+  --card-foreground: #F5F0EB;
+  --popover: #1A1612;
+  --popover-foreground: #F5F0EB;
+  --primary: #C8873A;
+  --primary-foreground: #0D0B09;
+  --secondary: rgba(255,255,255,0.06);
+  --secondary-foreground: #F5F0EB;
+  --muted: rgba(255,255,255,0.06);
+  --muted-foreground: #9A8F85;
+  --accent: rgba(200,135,58,0.15);
+  --accent-foreground: #C8873A;
+  --destructive: #E05252;
+  --border: rgba(255,255,255,0.08);
+  --input: rgba(255,255,255,0.06);
+  --ring: #C8873A;
+  --chart-1: #C8873A;
+  --chart-2: #E8A85A;
+  --chart-3: #A06830;
+  --chart-4: #6B4520;
+  --chart-5: #3D2510;
+  --radius: 0.75rem;
+  --sidebar: #110E0B;
+  --sidebar-foreground: #F5F0EB;
+  --sidebar-primary: #C8873A;
+  --sidebar-primary-foreground: #0D0B09;
+  --sidebar-accent: rgba(200,135,58,0.1);
+  --sidebar-accent-foreground: #C8873A;
+  --sidebar-border: rgba(255,255,255,0.06);
+  --sidebar-ring: #C8873A;
+
+  /* Fidelapp tokens */
+  --fi-bg: #0D0B09;
+  --fi-bg-card: rgba(255,255,255,0.04);
+  --fi-bg-sidebar: #0A0907;
+  --fi-bg-sidebar-active: rgba(200,135,58,0.15);
+  --fi-accent: #C8873A;
+  --fi-accent-2: #E8A85A;
+  --fi-accent-bg: rgba(200,135,58,0.08);
+  --fi-accent-border: rgba(200,135,58,0.2);
+  --fi-text: #F5F0EB;
+  --fi-text-muted: rgba(255,255,255,0.35);
+  --fi-border: rgba(255,255,255,0.08);
+  --fi-glass: rgba(255,255,255,0.04);
+  --fi-glass-strong: rgba(255,255,255,0.07);
+  --fi-shadow: rgba(0,0,0,0.4);
+  --fi-nav-bg: #0A0907;
+}
+
+/* ── Theme: Urbanist (Light) ─── */
+body[data-theme="urbanist"] {
+  --background: #F6F5FA;
+  --foreground: #212121;
+  --popover: #FFFFFF;
+  --popover-foreground: #212121;
+  --primary: #212121;
+  --primary-foreground: #FFFFFF;
+  --muted: #F0EFF5;
+  --muted-foreground: #6B7280;
+  --border: #E5E7EB;
+  --input: #F0EFF5;
+  --ring: #EFF0A3;
+
+  --fi-bg: #F6F5FA;
+  --fi-bg-card: #FFFFFF;
+  --fi-bg-sidebar: #FFFFFF;
+  --fi-bg-sidebar-active: rgba(239,240,163,0.5);
+  --fi-accent: #212121;
+  --fi-accent-2: #444444;
+  --fi-accent-bg: rgba(239,240,163,0.35);
+  --fi-accent-border: rgba(200,200,100,0.4);
+  --fi-text: #212121;
+  --fi-text-muted: rgba(33,33,33,0.45);
+  --fi-border: #E5E7EB;
+  --fi-glass: #FFFFFF;
+  --fi-glass-strong: #FFFFFF;
+  --fi-shadow: rgba(0,0,0,0.08);
+  --fi-nav-bg: #FFFFFF;
+}
+
+/* ── Theme: Warm Organic ─── */
+body[data-theme="warm"] {
+  --background: #F5EFE8;
+  --foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #E85D26;
+  --primary-foreground: #FFFFFF;
+  --muted: #EDE5DC;
+  --muted-foreground: #6B5E55;
+  --border: #E0D5C8;
+  --input: #EDE5DC;
+  --ring: #E85D26;
+
+  --fi-bg: #F5EFE8;
+  --fi-bg-card: #FFFFFF;
+  --fi-bg-sidebar: #FFFFFF;
+  --fi-bg-sidebar-active: rgba(232,93,38,0.1);
+  --fi-accent: #E85D26;
+  --fi-accent-2: #FF7A44;
+  --fi-accent-bg: rgba(232,93,38,0.08);
+  --fi-accent-border: rgba(232,93,38,0.25);
+  --fi-text: #1A1A1A;
+  --fi-text-muted: rgba(26,26,26,0.45);
+  --fi-border: #E0D5C8;
+  --fi-glass: rgba(255,255,255,0.75);
+  --fi-glass-strong: #FFFFFF;
+  --fi-shadow: rgba(0,0,0,0.08);
+  --fi-nav-bg: #FFFFFF;
+}
+
+/* ── Theme: Smart Minimal ─── */
+body[data-theme="minimal"] {
+  --background: #FFFFFF;
+  --foreground: #0A0A0A;
+  --popover: #F4F4F5;
+  --popover-foreground: #0A0A0A;
+  --primary: #0A0A0A;
+  --primary-foreground: #FFFFFF;
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
+  --border: #E4E4E7;
+  --input: #F4F4F5;
+  --ring: #0A0A0A;
+
+  --fi-bg: #FFFFFF;
+  --fi-bg-card: #F4F4F5;
+  --fi-bg-sidebar: #0A0A0A;
+  --fi-bg-sidebar-active: rgba(255,255,255,0.12);
+  --fi-accent: #0A0A0A;
+  --fi-accent-2: #3F3F46;
+  --fi-accent-bg: rgba(0,0,0,0.05);
+  --fi-accent-border: rgba(0,0,0,0.15);
+  --fi-text: #0A0A0A;
+  --fi-text-muted: rgba(0,0,0,0.4);
+  --fi-border: #E4E4E7;
+  --fi-glass: #F4F4F5;
+  --fi-glass-strong: #FFFFFF;
+  --fi-shadow: rgba(0,0,0,0.06);
+  --fi-nav-bg: #0A0A0A;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { font-family: var(--font-montserrat), 'Montserrat', system-ui, sans-serif; }
+  body {
+    background-color: var(--fi-bg);
+    color: var(--fi-text);
+    font-family: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  input, textarea, select, button {
+    font-family: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+  }
+}
+
+/* ── Glass morphism ─────────────────────────────────────────── */
+.glass {
+  background: var(--fi-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--fi-border);
+}
+.glass-strong {
+  background: var(--fi-glass-strong);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--fi-border);
+  box-shadow: 0 4px 24px var(--fi-shadow);
+}
+.glass-amber {
+  background: var(--fi-accent-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--fi-accent-border);
+}
+.glow-amber {
+  box-shadow: 0 0 40px var(--fi-accent-bg), 0 0 80px var(--fi-accent-bg);
+}
+.text-glow { text-shadow: 0 0 30px var(--fi-accent); }
+
+/* ── Gradient background ─── */
+.bg-noise {
+  background-image:
+    radial-gradient(ellipse at 20% 20%, var(--fi-accent-bg) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, var(--fi-accent-bg) 0%, transparent 50%);
+}
+
+/* ── Dashboard layout ─────────────────────────────────────── */
+#dashboard-sidebar { display: none; }
+#dashboard-mobile-nav { display: flex; }
+
+@media (min-width: 768px) {
+  #dashboard-sidebar { display: flex; }
+  #dashboard-mobile-nav { display: none; }
+}
+
+/* ── Light theme overrides — fuerza colores en temas claros ─── */
+/* Se aplica a urbanist, warm y minimal (fondos claros) */
+
+body[data-theme="urbanist"] .text-white,
+body[data-theme="warm"] .text-white,
+body[data-theme="minimal"] .text-white,
+body[data-theme="urbanist"] [class*="text-white"],
+body[data-theme="warm"] [class*="text-white"],
+body[data-theme="minimal"] [class*="text-white"] {
+  color: var(--fi-text) !important;
+}
+
+body[data-theme="urbanist"] [class*="text-white/3"],
+body[data-theme="urbanist"] [class*="text-white/4"],
+body[data-theme="urbanist"] [class*="text-white/5"],
+body[data-theme="urbanist"] [class*="text-white/6"],
+body[data-theme="urbanist"] [class*="text-white/7"],
+body[data-theme="warm"] [class*="text-white/3"],
+body[data-theme="warm"] [class*="text-white/4"],
+body[data-theme="warm"] [class*="text-white/5"],
+body[data-theme="warm"] [class*="text-white/6"],
+body[data-theme="warm"] [class*="text-white/7"],
+body[data-theme="minimal"] [class*="text-white/3"],
+body[data-theme="minimal"] [class*="text-white/4"],
+body[data-theme="minimal"] [class*="text-white/5"],
+body[data-theme="minimal"] [class*="text-white/6"],
+body[data-theme="minimal"] [class*="text-white/7"] {
+  color: var(--fi-text-muted) !important;
+}
+
+body[data-theme="urbanist"] [class*="bg-white/"],
+body[data-theme="warm"] [class*="bg-white/"],
+body[data-theme="minimal"] [class*="bg-white/"] {
+  background-color: var(--fi-glass) !important;
+}
+
+body[data-theme="urbanist"] [class*="border-white/"],
+body[data-theme="warm"] [class*="border-white/"],
+body[data-theme="minimal"] [class*="border-white/"] {
+  border-color: var(--fi-border) !important;
+}
+
+/* Inputs shadcn en temas claros */
+body[data-theme="urbanist"] input,
+body[data-theme="urbanist"] textarea,
+body[data-theme="urbanist"] select,
+body[data-theme="warm"] input,
+body[data-theme="warm"] textarea,
+body[data-theme="warm"] select,
+body[data-theme="minimal"] input,
+body[data-theme="minimal"] textarea,
+body[data-theme="minimal"] select {
+  color: var(--fi-text) !important;
+  background-color: var(--fi-glass) !important;
+  border-color: var(--fi-border) !important;
+}
+
+body[data-theme="urbanist"] input::placeholder,
+body[data-theme="warm"] input::placeholder,
+body[data-theme="minimal"] input::placeholder,
+body[data-theme="urbanist"] textarea::placeholder,
+body[data-theme="warm"] textarea::placeholder,
+body[data-theme="minimal"] textarea::placeholder {
+  color: var(--fi-text-muted) !important;
+}
+
+/* El sidebar de minimal tiene fondo oscuro, mantener texto blanco */
+body[data-theme="minimal"] #dashboard-sidebar {
+  color: #F5F0EB;
+}
+body[data-theme="minimal"] #dashboard-sidebar [class*="text-white"] {
+  color: #F5F0EB !important;
+}
+
+/* Divide lines */
+body[data-theme="urbanist"] [class*="divide-white"],
+body[data-theme="warm"] [class*="divide-white"],
+body[data-theme="minimal"] [class*="divide-white"] {
+  border-color: var(--fi-border) !important;
+}
