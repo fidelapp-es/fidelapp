@@ -85,6 +85,7 @@
   --sidebar-ring: #C8873A;
 
   /* Fidelapp tokens */
+  --fi-accent-text: #FFFFFF;
   --fi-bg: #0D0B09;
   --fi-bg-card: rgba(255,255,255,0.04);
   --fi-bg-sidebar: #0A0907;
@@ -101,6 +102,59 @@
   --fi-shadow: rgba(0,0,0,0.4);
   --fi-nav-bg: #0A0907;
 }
+
+/* ── Mode: Dark ─────────────────────────────────────────────── */
+body[data-mode="dark"] {
+  --fi-bg: #0D0B09;
+  --fi-bg-card: rgba(255,255,255,0.04);
+  --fi-bg-sidebar: #0A0907;
+  --fi-text: #F5F0EB;
+  --fi-text-muted: rgba(255,255,255,0.35);
+  --fi-border: rgba(255,255,255,0.08);
+  --fi-glass: rgba(255,255,255,0.04);
+  --fi-glass-strong: rgba(255,255,255,0.07);
+  --fi-shadow: rgba(0,0,0,0.4);
+  --fi-nav-bg: #0A0907;
+  --background: #0D0B09;
+  --foreground: #F5F0EB;
+}
+
+/* ── Mode: Light ─────────────────────────────────────────────── */
+body[data-mode="light"] {
+  --fi-bg: #F4F4F7;
+  --fi-bg-card: #FFFFFF;
+  --fi-bg-sidebar: #FFFFFF;
+  --fi-text: #1A1A1A;
+  --fi-text-muted: rgba(26,26,26,0.45);
+  --fi-border: #E5E7EB;
+  --fi-glass: rgba(255,255,255,0.9);
+  --fi-glass-strong: #FFFFFF;
+  --fi-shadow: rgba(0,0,0,0.08);
+  --fi-nav-bg: #FFFFFF;
+  --background: #F4F4F7;
+  --foreground: #1A1A1A;
+}
+
+/* Light mode overrides (same logic as existing light themes) */
+body[data-mode="light"] .text-white,
+body[data-mode="light"] [class*="text-white"] { color: var(--fi-text) !important; }
+body[data-mode="light"] [class*="text-white/3"],
+body[data-mode="light"] [class*="text-white/4"],
+body[data-mode="light"] [class*="text-white/5"],
+body[data-mode="light"] [class*="text-white/6"],
+body[data-mode="light"] [class*="text-white/7"] { color: var(--fi-text-muted) !important; }
+body[data-mode="light"] [class*="bg-white/"] { background-color: var(--fi-glass) !important; }
+body[data-mode="light"] [class*="border-white/"] { border-color: var(--fi-border) !important; }
+body[data-mode="light"] input,
+body[data-mode="light"] textarea,
+body[data-mode="light"] select {
+  color: var(--fi-text) !important;
+  background-color: var(--fi-glass) !important;
+  border-color: var(--fi-border) !important;
+}
+body[data-mode="light"] input::placeholder,
+body[data-mode="light"] textarea::placeholder { color: var(--fi-text-muted) !important; }
+body[data-mode="light"] [class*="divide-white"] { border-color: var(--fi-border) !important; }
 
 /* ── Theme: Urbanist (Light) ─── */
 body[data-theme="urbanist"] {

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <rect width="200" height="60" rx="12" fill="black"/>
+  <text x="100" y="22" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="11" fill="white" opacity="0.8">Añadir a</text>
+  <text x="100" y="42" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="18" font-weight="600" fill="white">Apple Wallet</text>
+  <path d="M16 20 C16 20 18 16 22 18 C23 15 27 14 29 17 C31 14 35 16 34 20 C36 20 37 23 35 24 L17 24 C15 23 14 20 16 20Z" fill="white" transform="translate(0, 4)"/>
+</svg>

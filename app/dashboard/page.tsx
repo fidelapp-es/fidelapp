@@ -1,10 +1,11 @@
-import { getServiceClient } from '@/lib/supabase'
+import { createAuthClient } from '@/lib/supabase/server'
 import { Users, TrendingUp, Star, ShoppingBag } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const supabase = getServiceClient()
+  // RLS automáticamente filtra por el usuario autenticado
+  const supabase = await createAuthClient()
 
   const [{ count: totalClientes }, { data: visitsData }, { data: customers }] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }),

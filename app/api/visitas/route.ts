@@ -1,29 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceClient } from '@/lib/supabase'
-
-const SETTINGS_ID = '00000000-0000-0000-0000-000000000001'
+import { getAuthUser } from '@/lib/supabase/server'
+import { pushPassUpdate } from '@/lib/wallet/apns'
 
 export async function POST(req: NextRequest) {
+  const { supabase, user } = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const { qr_code, customer_id, amount_spent, notes } = await req.json()
 
   if ((!qr_code && !customer_id) || !amount_spent || amount_spent <= 0) {
     return NextResponse.json({ error: 'Datos incorrectos' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
-
-  // Obtener configuración del negocio (card_type, puntos, cashback, sellos)
+  // Obtener configuración del negocio autenticado (RLS filtra automáticamente)
   const { data: settings } = await supabase
     .from('settings')
     .select('card_type, points_per_euro, cashback_percent, stamps_required, stamps_reward')
-    .eq('id', SETTINGS_ID)
     .single()
 
   const cardType = settings?.card_type || 'points'
   const pointsPerEuro = Number(settings?.points_per_euro ?? 1)
   const cashbackPercent = Number(settings?.cashback_percent ?? 5)
+  const stampsRequired = settings?.stamps_required || 10
 
-  // Buscar cliente — por ID (QR nuevo con URL) o por qr_code (QR antiguo)
+  // Buscar cliente del negocio (RLS garantiza que pertenece al owner autenticado)
   const customerQuery = supabase.from('customers').select('*')
   const { data: customer, error: findError } = customer_id
     ? await customerQuery.eq('id', customer_id).single()
@@ -42,15 +42,16 @@ export async function POST(req: NextRequest) {
     points_earned = Math.floor(Number(amount_spent) * pointsPerEuro)
   } else if (cardType === 'cashback') {
     cashback_earned = Math.round(Number(amount_spent) * cashbackPercent) / 100
-    points_earned = Math.round(cashback_earned * 100) // guardamos en centavos como "puntos"
+    points_earned = Math.round(cashback_earned * 100)
   } else if (cardType === 'stamps') {
     stamps_earned = 1
     points_earned = 1
   }
 
-  // Registrar visita
+  // Registrar visita con owner_id
   const { error: visitError } = await supabase.from('visits').insert({
     customer_id: customer.id,
+    owner_id: user.id,
     amount_spent: Number(amount_spent),
     points_earned,
     notes: notes || null,
@@ -62,9 +63,6 @@ export async function POST(req: NextRequest) {
   const newPoints = (customer.points || 0) + points_earned
   const newVisits = (customer.visits_count || 0) + 1
   const newCashback = Math.round(((customer.cashback_balance || 0) + cashback_earned) * 100) / 100
-
-  // Comprobar si completa tarjeta de sellos
-  const stampsRequired = settings?.stamps_required || 10
   const stampsCompleted = cardType === 'stamps' && newVisits % stampsRequired === 0
 
   const { data: updated, error: updateError } = await supabase
@@ -81,7 +79,11 @@ export async function POST(req: NextRequest) {
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
-  // Respuesta adaptada al tipo de tarjeta
+  // Push Apple Wallet update (fire-and-forget — don't block the response)
+  pushPassUpdate(customer.id).catch(err =>
+    console.error('[Wallet] Push update failed:', err.message)
+  )
+
   let display: Record<string, any> = {}
   if (cardType === 'points') {
     display = { label: 'Puntos ganados', value: `+${points_earned} pts`, total: `${newPoints} puntos` }

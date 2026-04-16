@@ -30,11 +30,10 @@ const sidebarNavItems = [
 export default function DashboardNav({ logoUrl = '', businessName = 'Fidelapp' }: { logoUrl?: string; businessName?: string }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-  const { theme } = useThemeApp()
+  const { mode } = useThemeApp()
 
-  const isLight = theme === 'urbanist' || theme === 'warm'
-  const isMinimal = theme === 'minimal'
-  const sidebarDark = isMinimal
+  const isLight = mode === 'light'
+  const sidebarDark = false
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -169,7 +168,7 @@ export default function DashboardNav({ logoUrl = '', businessName = 'Fidelapp' }
             >
               {isScanner ? (
                 <div style={{ background: 'var(--fi-accent)', borderRadius: 14, padding: '6px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <item.icon style={{ width: 18, height: 18, color: theme === 'minimal' ? '#FFFFFF' : '#0D0B09' }} />
+                  <item.icon style={{ width: 18, height: 18, color: 'var(--fi-accent-text)' }} />
                 </div>
               ) : (
                 <>

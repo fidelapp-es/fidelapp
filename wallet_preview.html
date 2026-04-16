@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plasér · FidelApp Wallet Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:opsz,wght@9..40,200;9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --red:       #B5312A;
+  --red-deep:  #8B1F19;
+  --beige:     #F0E8D8;
+  --beige-mid: #DDD0BA;
+  --beige-dark:#C5B49A;
+  --cream:     #FAF6EF;
+  --gold:      #C8A86A;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(ellipse at 30% 40%, #1a0d0c 0%, #0e0e0e 60%, #070707 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  font-family: 'DM Sans', sans-serif;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 25%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(181,49,42,0.13) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.phone {
+  width: 348px;
+  background: linear-gradient(170deg, #2c2c2e 0%, #1c1c1e 100%);
+  border-radius: 54px;
+  padding: 18px 15px 22px;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.13),
+    0 0 0 2.5px rgba(0,0,0,0.9),
+    0 50px 100px rgba(0,0,0,0.85),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+  animation: floatIn 0.75s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes floatIn {
+  from { opacity:0; transform:translateY(28px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.phone::before {
+  content:'';
+  position:absolute; left:-3px; top:105px;
+  width:3px; height:34px;
+  background:#2c2c2e; border-radius:2px 0 0 2px;
+  box-shadow:0 48px 0 #2c2c2e,0 88px 0 #2c2c2e;
+}
+.phone::after {
+  content:'';
+  position:absolute; right:-3px; top:130px;
+  width:3px; height:62px;
+  background:#2c2c2e; border-radius:0 2px 2px 0;
+}
+.island {
+  position:absolute; top:17px; left:50%;
+  transform:translateX(-50%);
+  width:118px; height:33px;
+  background:#080808; border-radius:20px; z-index:30;
+}
+.screen {
+  background:#F2F2F7;
+  border-radius:40px;
+  overflow:hidden;
+  padding-top:40px;
+}
+.wl-bar {
+  background:#F2F2F7;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:4px 20px 6px;
+}
+.wl-label {
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:18px; font-weight:700; color:#1C1C1E; letter-spacing:-0.3px;
+}
+.wl-plus { font-size:30px; color:#007AFF; line-height:1; font-weight:200; }
+.cards-wrap { padding:6px 13px 0; }
+.peek-3 {
+  width:calc(100% - 40px); margin:0 auto; height:10px;
+  background:linear-gradient(to bottom,#BEA98A,#AE9572);
+  border-radius:12px 12px 0 0; opacity:0.4;
+}
+.peek-2 {
+  width:calc(100% - 20px); margin:0 auto; height:13px;
+  background:linear-gradient(to bottom,#CFC0A0,#BEA880);
+  border-radius:13px 13px 0 0; opacity:0.6; margin-top:-1px;
+}
+.flip-scene {
+  perspective: 900px;
+  cursor: pointer;
+}
+.flip-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.45,0.05,0.55,0.95);
+  border-radius: 20px;
+}
+.flip-scene.flipped .flip-inner {
+  transform: rotateY(180deg);
+}
+.card-front, .card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+}
+.card-front {
+  width: 100%;
+  animation: cardIn 0.9s 0.25s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.card-back {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform: rotateY(180deg);
+  background: var(--beige);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.card-head {
+  background: var(--red);
+  padding: 14px 18px 13px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  position: relative; overflow: hidden;
+}
+.card-head::before {
+  content:''; position:absolute; top:-32px; right:-32px;
+  width:115px; height:115px; border-radius:50%;
+  background:rgba(255,255,255,0.06);
+}
+.card-head::after {
+  content:''; position:absolute; bottom:-55px; left:22%;
+  width:140px; height:140px; border-radius:50%;
+  background:rgba(0,0,0,0.11);
+}
+.head-left { position:relative; z-index:1; }
+.brand {
+  font-family:'Cormorant Garamond',serif;
+  font-size:27px; font-weight:600; letter-spacing:0.13em;
+  text-transform:uppercase; color:var(--beige); line-height:1;
+}
+.brand-sub {
+  font-size:7px; font-weight:200; letter-spacing:0.28em;
+  text-transform:uppercase; color:rgba(240,232,216,0.58); margin-top:4px;
+}
+.head-cup { position:relative; z-index:1; margin-top:1px; }
+.card-band {
+  height:90px; background:var(--red-deep);
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.band-glow {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 10% 75%,rgba(181,49,42,0.65) 0%,transparent 48%),
+    radial-gradient(ellipse at 82% 18%,rgba(200,169,106,0.11) 0%,transparent 42%),
+    radial-gradient(ellipse at 50% 110%,rgba(0,0,0,0.35) 0%,transparent 55%);
+}
+.cups-scene {
+  position:relative; z-index:2;
+  display:flex; align-items:flex-end; gap:8px; padding-bottom:2px;
+}
+.card-body { background:var(--beige); padding:14px 18px 13px; }
+.lbl {
+  font-size:7px; font-weight:500; letter-spacing:0.28em;
+  text-transform:uppercase; color:var(--red); margin-bottom:10px;
+}
+.stamps {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:12px;
+}
+.stamp {
+  aspect-ratio:1; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cream); border:1.5px solid var(--beige-mid);
+}
+.stamp.on { background:var(--red); border-color:var(--red); }
+.stamp svg { display:block; width:15px; height:15px; }
+.prog-row {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;
+}
+.prog-text { font-size:10px; font-weight:300; color:#9a9a9a; }
+.prog-text strong { color:var(--red); font-weight:500; }
+.badge {
+  font-size:7px; font-weight:500; letter-spacing:0.11em; text-transform:uppercase;
+  background:var(--red); color:var(--beige); padding:3px 9px; border-radius:20px;
+}
+.rule { height:0.5px; background:var(--beige-mid); margin:0 -18px 11px; }
+.card-foot { display:flex; align-items:center; justify-content:space-between; }
+.member-lbl {
+  font-size:7.5px; font-weight:300; letter-spacing:0.14em;
+  text-transform:uppercase; color:#bbb;
+}
+.member-name { font-size:11.5px; font-weight:500; color:#2a2a2a; margin-top:2px; }
+.tap-hint {
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:6px 0 2px;
+  font-size:7.5px; font-weight:300; letter-spacing:0.14em;
+  text-transform:uppercase; color:#bbb;
+  background:var(--beige);
+  border-top:0.5px solid var(--beige-mid);
+}
+.tap-icon { font-size:11px; opacity:0.6; }
+.back-head {
+  width:100%;
+  background:var(--red);
+  padding:12px 18px 11px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.back-brand {
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px; font-weight:600; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--beige); line-height:1;
+}
+.back-sub {
+  font-size:6.5px; font-weight:200; letter-spacing:0.26em;
+  text-transform:uppercase; color:rgba(240,232,216,0.55); margin-top:3px;
+}
+.back-body {
+  width:100%; flex:1;
+  background:var(--beige);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:18px 18px 14px;
+  gap:10px;
+}
+.qr-lbl {
+  font-size:7px; font-weight:500; letter-spacing:0.26em;
+  text-transform:uppercase; color:var(--red);
+}
+.qr-wrap {
+  background:#fff;
+  padding:10px; border-radius:12px;
+  border:1.5px solid var(--beige-mid);
+  display:flex; align-items:center; justify-content:center;
+}
+.qr-wrap canvas, .qr-wrap img {
+  display:block !important;
+  border-radius:4px;
+}
+.member-row {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.back-member-lbl {
+  font-size:7px; font-weight:300; letter-spacing:0.18em;
+  text-transform:uppercase; color:#bbb;
+}
+.back-member-name {
+  font-size:12px; font-weight:500; color:#2a2a2a; letter-spacing:0.02em;
+}
+.back-id {
+  font-family:'DM Sans',monospace;
+  font-size:8px; font-weight:300; letter-spacing:0.2em;
+  color:#b0a08a; margin-top:1px;
+}
+.back-rule { height:0.5px; width:100%; background:var(--beige-mid); }
+.back-tap {
+  width:100%; background:var(--beige);
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:7px 0;
+  font-size:7.5px; font-weight:300; letter-spacing:0.14em;
+  text-transform:uppercase; color:#bbb;
+}
+.wl-nav {
+  background:#F2F2F7;
+  display:flex; align-items:center; justify-content:center;
+  gap:6px; padding:10px 20px 16px; margin-top:10px;
+}
+.nav-pip { width:28px; height:4px; background:#D1D1D6; border-radius:2px; }
+.nav-pip.on { background:#8E8E93; width:36px; }
+.powered {
+  text-align:center; font-size:7.5px; font-weight:300;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color:#bbb; background:#F2F2F7; padding:2px 0 6px;
+}
+.meta { text-align:center; margin-top:2rem; animation:fadeUp 1s 0.55s both; }
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.meta-brand {
+  font-family:'Cormorant Garamond',serif;
+  font-size:18px; font-weight:300; font-style:italic;
+  letter-spacing:0.18em; color:rgba(240,232,216,0.45);
+}
+.meta-app {
+  font-size:8.5px; font-weight:300; letter-spacing:0.32em;
+  text-transform:uppercase; color:rgba(255,255,255,0.18); margin-top:5px;
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<div class="phone">
+  <div class="island"></div>
+  <div class="screen">
+    <div class="wl-bar">
+      <span class="wl-label">Wallet</span>
+      <span class="wl-plus">+</span>
+    </div>
+    <div class="cards-wrap">
+      <div class="peek-3"></div>
+      <div class="peek-2"></div>
+      <div class="flip-scene" id="flipScene" onclick="toggleFlip()">
+        <div class="flip-inner" id="flipInner">
+          <div class="card-front">
+            <div class="card-head">
+              <div class="head-left">
+                <div class="brand">Plasér</div>
+                <div class="brand-sub">Specialty Coffee · Sevilla</div>
+              </div>
+              <div class="head-cup">
+                <svg width="30" height="38" viewBox="0 0 30 38" fill="none">
+                  <path d="M4 8 L26 8 L22 34 L8 34 Z" fill="rgba(240,232,216,0.13)" stroke="rgba(240,232,216,0.72)" stroke-width="1.3" stroke-linejoin="round"/>
+                  <rect x="3" y="5.5" width="24" height="4" rx="2" fill="rgba(240,232,216,0.15)" stroke="rgba(240,232,216,0.65)" stroke-width="1.2"/>
+                  <rect x="11" y="2" width="8" height="4.5" rx="1.5" fill="none" stroke="rgba(240,232,216,0.5)" stroke-width="1"/>
+                  <path d="M6.5 17 L23.5 17" stroke="rgba(240,232,216,0.22)" stroke-width="5" stroke-linecap="round"/>
+                  <text x="15" y="28" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="7" font-style="italic" fill="rgba(240,232,216,0.55)">P</text>
+                </svg>
+              </div>
+            </div>
+            <div class="card-band">
+              <div class="band-glow"></div>
+              <div class="cups-scene">
+                <svg width="34" height="50" viewBox="0 0 34 50" fill="none" style="opacity:0.38;margin-bottom:2px;">
+                  <path d="M3 7 L31 7 L26 46 L8 46 Z" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.38)" stroke-width="1.2" stroke-linejoin="round"/>
+                  <rect x="2.5" y="4.5" width="29" height="4" rx="2" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.32)" stroke-width="1"/>
+                  <rect x="11" y="1" width="12" height="4.5" rx="1.5" fill="none" stroke="rgba(200,169,106,0.25)" stroke-width="1"/>
+                  <path d="M5 16.5 L29 16.5" stroke="rgba(200,169,106,0.15)" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+                <svg width="56" height="76" viewBox="0 0 56 76" fill="none">
+                  <path d="M5 11 L51 11 L45 68 L11 68 Z" fill="rgba(240,232,216,0.09)" stroke="rgba(240,232,216,0.82)" stroke-width="1.6" stroke-linejoin="round"/>
+                  <rect x="4" y="7.5" width="48" height="6" rx="3" fill="rgba(240,232,216,0.16)" stroke="rgba(240,232,216,0.72)" stroke-width="1.4"/>
+                  <rect x="22" y="1" width="8" height="7.5" rx="2.2" fill="none" stroke="rgba(240,232,216,0.5)" stroke-width="1.2"/>
+                  <path d="M8 26 L48 26" stroke="rgba(240,232,216,0.11)" stroke-width="11" stroke-linecap="round"/>
+                  <path d="M8 21.5 L48 21.5" stroke="rgba(240,232,216,0.28)" stroke-width="1" stroke-linecap="round"/>
+                  <path d="M9.5 33.5 L46.5 33.5" stroke="rgba(240,232,216,0.28)" stroke-width="1" stroke-linecap="round"/>
+                  <text x="28" y="55" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="11" font-style="italic" font-weight="300" fill="rgba(240,232,216,0.62)">Plasér</text>
+                  <path d="M11 68 Q28 72 45 68" stroke="rgba(200,169,106,0.38)" stroke-width="1" fill="none"/>
+                </svg>
+                <svg width="34" height="50" viewBox="0 0 34 50" fill="none" style="opacity:0.32;margin-bottom:2px;">
+                  <path d="M3 7 L31 7 L26 46 L8 46 Z" fill="rgba(240,232,216,0.05)" stroke="rgba(240,232,216,0.3)" stroke-width="1.2" stroke-linejoin="round"/>
+                  <rect x="2.5" y="4.5" width="29" height="4" rx="2" fill="rgba(240,232,216,0.06)" stroke="rgba(240,232,216,0.25)" stroke-width="1"/>
+                  <rect x="11" y="1" width="12" height="4.5" rx="1.5" fill="none" stroke="rgba(240,232,216,0.18)" stroke-width="1"/>
+                  <path d="M5 16.5 L29 16.5" stroke="rgba(240,232,216,0.12)" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="lbl">Tarjeta de fidelidad</div>
+              <div class="stamps">
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp on"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="rgba(240,232,216,0.88)" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="rgba(240,232,216,0.78)" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="rgba(240,232,216,0.55)" stroke-width="0.9"/></svg></div>
+                <div class="stamp"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="#C5B49A" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="#C5B49A" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="#DDD0BA" stroke-width="0.9"/></svg></div>
+                <div class="stamp"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="#C5B49A" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="#C5B49A" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="#DDD0BA" stroke-width="0.9"/></svg></div>
+                <div class="stamp"><svg viewBox="0 0 20 20" fill="none"><path d="M4 7.5L16 7.5L14.2 16H5.8Z" stroke="#C5B49A" stroke-width="1.25" stroke-linejoin="round"/><rect x="3.5" y="5.5" width="13" height="2.5" rx="1.25" stroke="#C5B49A" stroke-width="1.1"/><rect x="7.5" y="3" width="5" height="3" rx="1.1" stroke="#DDD0BA" stroke-width="0.9"/></svg></div>
+              </div>
+              <div class="prog-row">
+                <span class="prog-text"><strong>7</strong> de 10 cafés</span>
+                <span class="badge">3 para tu café gratis</span>
+              </div>
+              <div class="rule"></div>
+              <div class="card-foot">
+                <div>
+                  <div class="member-lbl">Miembro</div>
+                  <div class="member-name">Carlos Morales</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="opacity:0.35;">
+                    <rect x="2" y="2" width="10" height="10" rx="1.5" stroke="#8B1F19" stroke-width="1.5"/>
+                    <rect x="4" y="4" width="6" height="6" rx="0.5" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="16" y="2" width="10" height="10" rx="1.5" stroke="#8B1F19" stroke-width="1.5"/>
+                    <rect x="18" y="4" width="6" height="6" rx="0.5" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="2" y="16" width="10" height="10" rx="1.5" stroke="#8B1F19" stroke-width="1.5"/>
+                    <rect x="4" y="18" width="6" height="6" rx="0.5" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="16" y="16" width="3" height="3" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="21" y="16" width="3" height="3" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="16" y="21" width="3" height="3" fill="#8B1F19" opacity="0.5"/>
+                    <rect x="21" y="21" width="3" height="3" fill="#8B1F19" opacity="0.5"/>
+                  </svg>
+                  <span style="font-size:6px;letter-spacing:0.1em;text-transform:uppercase;color:#bbb;font-weight:300;">ver QR</span>
+                </div>
+              </div>
+            </div>
+            <div class="tap-hint">
+              <span class="tap-icon">↺</span>
+              <span>toca para ver el código QR</span>
+            </div>
+          </div>
+          <div class="card-back">
+            <div class="back-head">
+              <div>
+                <div class="back-brand">Plasér</div>
+                <div class="back-sub">Specialty Coffee · Sevilla</div>
+              </div>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="opacity:0.6;">
+                <path d="M3 7 L21 7 L18.5 21 L5.5 21 Z" stroke="rgba(240,232,216,0.8)" stroke-width="1.3" stroke-linejoin="round"/>
+                <rect x="2.5" y="5" width="19" height="3.5" rx="1.75" stroke="rgba(240,232,216,0.7)" stroke-width="1.2"/>
+                <rect x="9" y="1.5" width="6" height="3.5" rx="1.2" fill="none" stroke="rgba(240,232,216,0.5)" stroke-width="1"/>
+              </svg>
+            </div>
+            <div class="back-body">
+              <div class="qr-lbl">Escanea para registrar tu visita</div>
+              <div class="qr-wrap">
+                <div id="qrcode"></div>
+              </div>
+              <div class="back-rule"></div>
+              <div class="member-row">
+                <div class="back-member-lbl">Miembro</div>
+                <div class="back-member-name">Carlos Morales</div>
+                <div class="back-id">PLSR-2024-CM-00847</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                <div style="height:0.5px;flex:1;background:var(--beige-mid);"></div>
+                <span style="font-size:6.5px;font-weight:300;letter-spacing:0.22em;text-transform:uppercase;color:#c8a86a;">fidelapp</span>
+                <div style="height:0.5px;flex:1;background:var(--beige-mid);"></div>
+              </div>
+            </div>
+            <div class="back-tap">
+              <span style="font-size:11px;opacity:0.5;">↺</span>
+              <span>volver a la tarjeta</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="powered">fidelapp · powered by Plasér</div>
+    <div class="wl-nav">
+      <div class="nav-pip"></div>
+      <div class="nav-pip on"></div>
+      <div class="nav-pip"></div>
+    </div>
+  </div>
+</div>
+<div class="meta">
+  <div class="meta-brand">Plasér</div>
+  <div class="meta-app">FidelApp · Apple Wallet Preview</div>
+</div>
+</div>
+<script>
+  window.addEventListener('load', function() {
+    new QRCode(document.getElementById("qrcode"), {
+      text: "https://fidelapp.es/scan?id=PLSR-2024-CM-00847&loc=plaserSEV",
+      width: 148,
+      height: 148,
+      colorDark: "#2a1008",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  });
+  function toggleFlip() {
+    document.getElementById('flipScene').classList.toggle('flipped');
+  }
+</script>
+</body>
+</html>

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceClient } from '@/lib/supabase'
+import { getAuthUser } from '@/lib/supabase/server'
 
 export async function GET() {
-  const supabase = getServiceClient()
+  const { supabase, user } = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const { data, error } = await supabase
     .from('promotions')
     .select('*')
@@ -12,13 +14,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const { supabase, user } = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const body = await req.json()
   const { title, description, points_required, discount_type, discount_value, active } = body
 
-  const supabase = getServiceClient()
   const { data, error } = await supabase
     .from('promotions')
-    .insert({ title, description, points_required, discount_type, discount_value, active })
+    .insert({ title, description, points_required, discount_type, discount_value, active, owner_id: user.id })
     .select()
     .single()
 

@@ -1,20 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(req: NextRequest) {
-  const { password } = await req.json()
+  const { email, password } = await req.json()
 
-  if (password !== process.env.DASHBOARD_PASSWORD) {
-    return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 })
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email y contraseña requeridos' }, { status: 400 })
   }
 
-  const res = NextResponse.json({ ok: true })
-  res.cookies.set('plaser_auth', 'true', {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  })
+  const cookieStore = await cookies()
 
-  return res
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error) {
+    const msg = error.message === 'Invalid login credentials'
+      ? 'Email o contraseña incorrectos'
+      : error.message
+    return NextResponse.json({ error: msg }, { status: 401 })
+  }
+
+  return NextResponse.json({ ok: true })
 }

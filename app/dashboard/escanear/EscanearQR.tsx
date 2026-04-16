@@ -37,7 +37,7 @@ export default function EscanearQR() {
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent)
+  const isMobile = typeof navigator !== 'undefined' && /iphone|ipad|ipod|android/i.test(navigator.userAgent)
 
   function extractFromScanned(text: string): { qr_code?: string; customer_id?: string } {
     const match = text.match(/\/cliente\/([0-9a-f-]{36})/i)
@@ -97,48 +97,68 @@ export default function EscanearQR() {
     }
   }, [step, mode])
 
-  // ── Escanear foto con jsQR (para iOS) ───────────────────────
+  // ── Escanear foto con jsQR (móvil) ───────────────────────────
   async function handleFileCapture(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
 
     try {
-      // Intentar BarcodeDetector nativo primero (iOS 17+, Chrome Android)
+      // BarcodeDetector nativo (Chrome Android, iOS 17+)
       if ('BarcodeDetector' in window) {
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
-        const bitmap = await createImageBitmap(file)
-        const barcodes = await detector.detect(bitmap)
-        if (barcodes.length > 0) {
-          setScanned(barcodes[0].rawValue)
-          setStep('form')
-          return
-        }
+        try {
+          const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+          const bitmap = await createImageBitmap(file)
+          const barcodes = await detector.detect(bitmap)
+          if (barcodes.length > 0) {
+            setScanned(barcodes[0].rawValue)
+            setStep('form')
+            return
+          }
+        } catch {}
       }
 
-      // Fallback: jsQR via canvas
+      // Fallback: jsQR via canvas (con redimensionado para imágenes grandes)
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image()
         i.onload = () => resolve(i)
         i.onerror = reject
         i.src = URL.createObjectURL(file)
       })
-      const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+      // Intentar a varias resoluciones para mayor fiabilidad
+      const sizes = [
+        Math.min(img.naturalWidth, 1024),
+        Math.min(img.naturalWidth, 512),
+        img.naturalWidth,
+      ]
+
       const jsQR = (await import('jsqr')).default
-      const qrResult = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert',
-      })
-      if (qrResult) {
-        setScanned(qrResult.data)
-        setStep('form')
-      } else {
-        toast.error('No se detectó el QR. Prueba a buscar el cliente por nombre.')
+
+      for (const maxW of sizes) {
+        const scale = maxW / img.naturalWidth
+        const w = Math.round(img.naturalWidth * scale)
+        const h = Math.round(img.naturalHeight * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, w, h)
+        const imageData = ctx.getImageData(0, 0, w, h)
+
+        for (const invert of ['dontInvert', 'invertFirst'] as const) {
+          const qrResult = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: invert,
+          })
+          if (qrResult) {
+            setScanned(qrResult.data)
+            setStep('form')
+            return
+          }
+        }
       }
+
+      toast.error('No se detectó el QR. Acerca más la cámara o busca el cliente por nombre.')
     } catch {
       toast.error('Error al leer la imagen.')
     }
@@ -352,8 +372,8 @@ export default function EscanearQR() {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* iOS: foto del QR */}
-        {isIOS ? (
+        {/* Móvil: foto; Escritorio: cámara en vivo */}
+        {isMobile ? (
           <button onClick={() => fileInputRef.current?.click()}
             style={{ touchAction: 'manipulation', width: '100%', background: 'var(--fi-accent)', border: 'none', color: 'var(--fi-bg)', fontWeight: 600, height: 56, borderRadius: 16, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Camera style={{ width: 20, height: 20 }} /> Fotografiar QR del cliente

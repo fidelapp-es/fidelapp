@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180.png" />
       </head>
-      <body className="min-h-full flex flex-col" style={{ backgroundColor: 'var(--fi-bg)', color: 'var(--fi-text)' }}>
+      <body suppressHydrationWarning className="min-h-full flex flex-col" style={{ backgroundColor: 'var(--fi-bg)', color: 'var(--fi-text)' }}>
         {children}
         <Toaster richColors position="top-center" />
       </body>
