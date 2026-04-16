@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ interface BusinessSettings {
   owner_id: string
 }
 
-export default function RegistroPage() {
+function RegistroContent() {
   const [form, setForm] = useState({ name: '', email: '', phone: '' })
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState<BusinessSettings | null>(null)
@@ -130,5 +130,13 @@ export default function RegistroPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function RegistroPage() {
+  return (
+    <Suspense>
+      <RegistroContent />
+    </Suspense>
   )
 }
