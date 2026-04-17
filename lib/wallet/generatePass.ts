@@ -162,6 +162,15 @@ function buildStripSVG(
   </svg>`
 }
 
+// ── Cert loader: env var (production) → filesystem (local dev) ───────────────
+function loadCert(envVar: string, filename: string): Buffer {
+  const b64 = process.env[envVar]
+  if (b64) return Buffer.from(b64, 'base64')
+  // Local development fallback
+  const certsDir = path.join(process.cwd(), 'certs')
+  return readFileSync(path.join(certsDir, filename))
+}
+
 // ── Main: generate a .pkpass buffer for a customer ────────────────────────────
 export async function generatePassBuffer(customerId: string): Promise<Buffer> {
   const supabase = getServiceClient()
@@ -176,7 +185,6 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
   // auth_token may not exist yet (pre-migration schema)
   const authToken = customer.auth_token ?? customer.id
 
-  const certsDir     = path.join(process.cwd(), 'certs')
   const passTypeId   = process.env.PASS_TYPE_ID || 'pass.es.fidelapp.loyalty'
   const teamId       = process.env.PASS_TEAM_ID || ''
   const certPass     = process.env.PASS_CERT_PASSWORD || ''
@@ -243,9 +251,9 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     ? (await fetchWithTimeout(walletLogoUrl)) ?? makeSolidPNG(160, 50, accentHex)
     : makeSolidPNG(160, 50, accentHex)
 
-  const wwdr       = readFileSync(path.join(certsDir, 'wwdr.pem'))
-  const signerCert = readFileSync(path.join(certsDir, 'signerCert.pem'))
-  const signerKey  = readFileSync(path.join(certsDir, 'signerKey.pem'))
+  const wwdr       = loadCert('APPLE_WWDR_CERT',   'wwdr.pem')
+  const signerCert = loadCert('APPLE_SIGNER_CERT', 'signerCert.pem')
+  const signerKey  = loadCert('APPLE_SIGNER_KEY',  'signerKey.pem')
 
   const pass = new PKPass(
     {
