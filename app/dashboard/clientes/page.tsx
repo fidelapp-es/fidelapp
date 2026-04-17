@@ -1,14 +1,19 @@
-import { getServiceClient } from '@/lib/supabase'
+import { createAuthClient } from '@/lib/supabase/server'
 import ClientesTable from './ClientesTable'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ClientesPage() {
-  const supabase = getServiceClient()
-  const { data: customers } = await supabase
-    .from('customers')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const supabase = await createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: customers } = user
+    ? await supabase
+        .from('customers')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+    : { data: [] }
 
   return (
     <div className="p-8">

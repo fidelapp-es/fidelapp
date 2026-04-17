@@ -12,19 +12,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datos incorrectos' }, { status: 400 })
   }
 
-  // Obtener configuración del negocio autenticado (RLS filtra automáticamente)
+  // Obtener configuración del negocio autenticado filtrada por user.id
   const { data: settings } = await supabase
     .from('settings')
     .select('card_type, points_per_euro, cashback_percent, stamps_required, stamps_reward')
-    .single()
+    .eq('id', user.id)
+    .maybeSingle()
 
   const cardType = settings?.card_type || 'points'
   const pointsPerEuro = Number(settings?.points_per_euro ?? 1)
   const cashbackPercent = Number(settings?.cashback_percent ?? 5)
   const stampsRequired = settings?.stamps_required || 10
 
-  // Buscar cliente del negocio (RLS garantiza que pertenece al owner autenticado)
-  const customerQuery = supabase.from('customers').select('*')
+  // Buscar cliente del negocio filtrando explícitamente por owner_id
+  const customerQuery = supabase.from('customers').select('*').eq('owner_id', user.id)
   const { data: customer, error: findError } = customer_id
     ? await customerQuery.eq('id', customer_id).single()
     : await customerQuery.eq('qr_code', qr_code).single()

@@ -27,8 +27,11 @@ function RegistroContent() {
   const businessId = searchParams.get('b') // owner_id del negocio
 
   useEffect(() => {
-    // Load business branding (with or without owner_id param)
-    fetch('/api/public/settings')
+    const url = businessId
+      ? `/api/public/settings?owner_id=${businessId}`
+      : '/api/public/settings'
+
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (data && !data.error) {
@@ -38,7 +41,7 @@ function RegistroContent() {
         }
       })
       .catch(() => {})
-  }, [])
+  }, [businessId])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))

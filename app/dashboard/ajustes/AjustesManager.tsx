@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Save, Building2, CreditCard, Palette, MapPin, Receipt, Check, Upload, X, Moon, Sun, Wallet } from 'lucide-react'
+import { Save, Building2, CreditCard, Palette, MapPin, Receipt, Check, Upload, X, Moon, Sun, Wallet, Link as LinkIcon, Copy, Download, QrCode } from 'lucide-react'
+import QRCode from 'react-qr-code'
+import QRCodeLib from 'qrcode'
 import { applyBrandColors, type ColorMode } from '@/lib/themes'
 import { useThemeApp } from '../ThemeProvider'
 import { parseThemeConfig, serializeThemeConfig, type ThemeConfig } from '@/lib/themeConfig'
@@ -208,7 +210,7 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingWalletLogo, setUploadingWalletLogo] = useState(false)
   const [uploadingStrip, setUploadingStrip] = useState(false)
-  const [activeTab, setActiveTab] = useState<'empresa'|'tarjeta'|'wallet'|'tema'|'geocatch'|'facturacion'>('empresa')
+  const [activeTab, setActiveTab] = useState<'empresa'|'tarjeta'|'wallet'|'tema'|'geocatch'|'facturacion'|'enlace'>('empresa')
   const [walletPreviewType, setWalletPreviewType] = useState<string>(initialSettings?.card_type || 'stamps')
   const { mode, accent, setMode, setAccent } = useThemeApp()
   const logoInputRef        = useRef<HTMLInputElement>(null)
@@ -288,6 +290,7 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
     { id: 'tarjeta',     label: 'Tarjeta',    icon: CreditCard },
     { id: 'wallet',      label: 'Wallet',     icon: Wallet },
     { id: 'tema',        label: 'Tema',       icon: Palette },
+    { id: 'enlace',      label: 'Enlace',     icon: QrCode },
     { id: 'geocatch',    label: 'Geocatch',   icon: MapPin },
     { id: 'facturacion', label: 'Facturación',icon: Receipt },
   ]
@@ -694,12 +697,19 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
         </div>
       )}
 
-      {/* Guardar */}
-      <button onClick={handleSave} disabled={saving}
-        style={{ touchAction:'manipulation', width:'100%', height:48, borderRadius:14, background:'var(--fi-accent)', border:'none', color:'var(--fi-accent-text)', fontWeight:600, fontSize:15, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity: saving ? 0.7 : 1 }}>
-        <Save style={{ width:18, height:18 }} />
-        {saving ? 'Guardando...' : 'Guardar ajustes'}
-      </button>
+      {/* ── Enlace y QR ── */}
+      {activeTab === 'enlace' && (
+        <EnlaceTab ownerId={settings.id || ''} businessName={settings.business_name || 'Mi negocio'} />
+      )}
+
+      {/* Guardar — solo visible en tabs que lo necesitan */}
+      {activeTab !== 'enlace' && (
+        <button onClick={handleSave} disabled={saving}
+          style={{ touchAction:'manipulation', width:'100%', height:48, borderRadius:14, background:'var(--fi-accent)', border:'none', color:'var(--fi-accent-text)', fontWeight:600, fontSize:15, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity: saving ? 0.7 : 1 }}>
+          <Save style={{ width:18, height:18 }} />
+          {saving ? 'Guardando...' : 'Guardar ajustes'}
+        </button>
+      )}
 
       <style>{`
         .fi-input { width:100%; background:var(--fi-glass); border:1px solid var(--fi-border); border-radius:12px; padding:10px 14px; font-size:14px; color:var(--fi-text); outline:none; transition:border-color 0.15s; font-family:inherit; }
@@ -707,6 +717,122 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
         .fi-input::placeholder { color:var(--fi-text-muted); }
         ::-webkit-scrollbar { display:none; }
       `}</style>
+    </div>
+  )
+}
+
+// ── EnlaceTab ─────────────────────────────────────────────────────────────────
+function EnlaceTab({ ownerId, businessName }: { ownerId: string; businessName: string }) {
+  const [url, setUrl] = useState('')
+
+  useEffect(() => {
+    if (ownerId) setUrl(`${window.location.origin}/registro?b=${ownerId}`)
+  }, [ownerId])
+
+  function copyUrl() {
+    if (!url) return
+    navigator.clipboard.writeText(url).then(() => toast.success('Enlace copiado'))
+  }
+
+  async function downloadQR() {
+    if (!url) return
+    try {
+      const dataUrl = await QRCodeLib.toDataURL(url, { width: 600, margin: 2, color: { dark: '#0D0B09', light: '#FFFFFF' } })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `qr-registro-${businessName.toLowerCase().replace(/\s+/g, '-')}.png`
+      a.click()
+    } catch {
+      toast.error('Error al generar el QR')
+    }
+  }
+
+  if (!ownerId) {
+    return (
+      <div className="glass-strong rounded-2xl p-8 text-center">
+        <p style={{ color: 'var(--fi-text-muted)', fontSize: 14 }}>Guarda primero los ajustes para generar tu enlace.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Hero */}
+      <div className="glass-strong rounded-2xl p-6">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--fi-accent-bg)', border: '1px solid var(--fi-accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LinkIcon style={{ width: 16, height: 16, color: 'var(--fi-accent)' }} />
+          </div>
+          <div>
+            <h2 style={{ color: 'var(--fi-text)', fontWeight: 700, fontSize: 16, margin: 0 }}>Tu enlace de registro</h2>
+            <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, margin: 0 }}>Compártelo o pon el QR en tu local</p>
+          </div>
+        </div>
+
+        {/* URL box */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 16 }}>
+          <div style={{ flex: 1, padding: '10px 14px', borderRadius: 12, background: 'var(--fi-glass)', border: '1px solid var(--fi-border)', fontFamily: 'monospace', fontSize: 13, color: 'var(--fi-text)', wordBreak: 'break-all', lineHeight: 1.5 }}>
+            {url || '…'}
+          </div>
+          <button onClick={copyUrl} title="Copiar enlace"
+            style={{ touchAction: 'manipulation', padding: '0 16px', borderRadius: 12, background: 'var(--fi-accent-bg)', border: '1px solid var(--fi-accent-border)', color: 'var(--fi-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, fontSize: 13, flexShrink: 0 }}>
+            <Copy style={{ width: 14, height: 14 }} />
+            Copiar
+          </button>
+        </div>
+
+        <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginTop: 10 }}>
+          Cuando alguien abra este enlace, verá el formulario de registro vinculado exclusivamente a <strong style={{ color: 'var(--fi-text)' }}>{businessName}</strong>.
+        </p>
+      </div>
+
+      {/* QR */}
+      <div className="glass-strong rounded-2xl p-6">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h3 style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 15, margin: 0 }}>Código QR descargable</h3>
+            <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginTop: 4 }}>Imprime este QR y ponlo en la barra, en mesas o en el escaparate</p>
+          </div>
+          <button onClick={downloadQR}
+            style={{ touchAction: 'manipulation', padding: '9px 16px', borderRadius: 12, background: 'var(--fi-accent)', border: 'none', color: 'var(--fi-accent-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
+            <Download style={{ width: 14, height: 14 }} />
+            Descargar PNG
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', padding: 20, borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            {url && <QRCode value={url} size={200} fgColor="#0D0B09" bgColor="#ffffff" />}
+            <p style={{ color: '#6B7280', fontSize: 12, margin: 0, textAlign: 'center', maxWidth: 200 }}>
+              Escanea para unirte a{' '}
+              <strong style={{ color: '#111827' }}>{businessName}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Instrucciones */}
+      <div className="glass-strong rounded-2xl p-6">
+        <h3 style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 14, marginBottom: 14 }}>Cómo usarlo</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[
+            { n: '1', t: 'Descarga el QR', d: 'Pulsa "Descargar PNG" y guarda la imagen en alta resolución.' },
+            { n: '2', t: 'Imprímelo', d: 'Ponlo en la barra, mesas o escaparate del local. Vale un A5 plastificado.' },
+            { n: '3', t: 'El cliente escanea', d: 'Con la cámara del móvil escanea el QR y llega directamente a tu formulario.' },
+            { n: '4', t: 'Se registra', d: 'Rellena nombre, email y teléfono. Queda vinculado a tu negocio automáticamente.' },
+          ].map(step => (
+            <div key={step.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--fi-accent-bg)', border: '1px solid var(--fi-accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: 'var(--fi-accent)', fontWeight: 700, fontSize: 13 }}>{step.n}</span>
+              </div>
+              <div>
+                <p style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 13, margin: 0 }}>{step.t}</p>
+                <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, margin: '2px 0 0' }}>{step.d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

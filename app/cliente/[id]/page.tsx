@@ -10,11 +10,16 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
   const { data: customer } = await supabase.from('customers').select('*').eq('id', id).single()
   if (!customer) return notFound()
 
-  // Load business settings — owner_id may not exist yet (pre-migration schema)
-  // Fall back to single() since there is only one settings row per business
+  // Load business settings for this customer's owner.
+  // settings.id = owner user_id, so filter by customer.owner_id.
   const [{ data: settings }, { data: promotions }] = await Promise.all([
-    supabase.from('settings').select('*').single(),
-    supabase.from('promotions').select('*').eq('active', true).order('points_required', { ascending: true }),
+    customer.owner_id
+      ? supabase.from('settings').select('*').eq('id', customer.owner_id).maybeSingle()
+      : supabase.from('settings').select('*').maybeSingle(),
+    supabase.from('promotions').select('*')
+      .eq('active', true)
+      .eq('owner_id', customer.owner_id ?? '')
+      .order('points_required', { ascending: true }),
   ])
 
   const headersList = await headers()

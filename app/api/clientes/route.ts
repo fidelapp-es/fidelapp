@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const q = req.nextUrl.searchParams.get('q')
-  let query = supabase.from('customers').select('*').order('created_at', { ascending: false })
+  let query = supabase.from('customers').select('*').eq('owner_id', user.id).order('created_at', { ascending: false })
   if (q) query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
 
   const { data, error } = await query
@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
   if (user) {
     ownerId = user.id
   } else if (ownerFromBody) {
-    // Verificar que el negocio existe (seguridad mínima)
+    // Verificar que el negocio existe — settings.id = owner user_id
     const sc = getServiceClient()
-    const { data: biz } = await sc.from('settings').select('owner_id').eq('owner_id', ownerFromBody).single()
+    const { data: biz } = await sc.from('settings').select('id').eq('id', ownerFromBody).maybeSingle()
     if (!biz) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
     ownerId = ownerFromBody
   } else {

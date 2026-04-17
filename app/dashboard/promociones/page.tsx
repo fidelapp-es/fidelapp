@@ -1,14 +1,19 @@
-import { getServiceClient } from '@/lib/supabase'
+import { createAuthClient } from '@/lib/supabase/server'
 import PromocionesManager from './PromocionesManager'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PromocionesPage() {
-  const supabase = getServiceClient()
-  const { data: promotions } = await supabase
-    .from('promotions')
-    .select('*')
-    .order('points_required', { ascending: true })
+  const supabase = await createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: promotions } = user
+    ? await supabase
+        .from('promotions')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('points_required', { ascending: true })
+    : { data: [] }
 
   return (
     <div className="p-8">

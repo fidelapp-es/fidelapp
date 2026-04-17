@@ -4,13 +4,14 @@ import { Users, TrendingUp, Star, ShoppingBag } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  // RLS automáticamente filtra por el usuario autenticado
   const supabase = await createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const ownerId = user?.id ?? ''
 
   const [{ count: totalClientes }, { data: visitsData }, { data: customers }] = await Promise.all([
-    supabase.from('customers').select('*', { count: 'exact', head: true }),
-    supabase.from('visits').select('amount_spent, points_earned, created_at'),
-    supabase.from('customers').select('name, points, total_spent').order('points', { ascending: false }).limit(5),
+    supabase.from('customers').select('*', { count: 'exact', head: true }).eq('owner_id', ownerId),
+    supabase.from('visits').select('amount_spent, points_earned, created_at').eq('owner_id', ownerId),
+    supabase.from('customers').select('name, points, total_spent').eq('owner_id', ownerId).order('points', { ascending: false }).limit(5),
   ])
 
   const totalIngresos = visitsData?.reduce((sum, v) => sum + Number(v.amount_spent), 0) ?? 0

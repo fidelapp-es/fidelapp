@@ -1,28 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { getServiceClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
 
+  // In Vercel, x-forwarded-host is the real public domain.
+  // `origin` would be an internal Vercel URL the browser can't reach.
+  const forwardedHost = req.headers.get('x-forwarded-host')
+  const base = forwardedHost ? `https://${forwardedHost}` : origin
+
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=no_code`)
+    return NextResponse.redirect(`${base}/login?error=no_code`)
   }
 
-  const cookieStore = await cookies()
+  // Capture every cookie Supabase wants to write so we can attach them
+  // to the redirect response (NextResponse.redirect is a NEW response object
+  // — cookies set via next/headers would NOT appear on it).
+  const cookiesToSet: { name: string; value: string; options: any }[] = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
+        // Read PKCE verifier and any existing cookies from the incoming request
+        getAll() {
+          return req.cookies.getAll()
+        },
+        // Collect session cookies — we'll attach them to the redirect below
+        setAll(cookies) {
+          cookiesToSet.push(...cookies)
         },
       },
     }
@@ -31,13 +40,14 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    console.error('[OAuth callback] exchangeCodeForSession error:', error?.message)
+    return NextResponse.redirect(`${base}/login?error=auth_failed`)
   }
 
+  // Create a fresh settings row for new users (existing users are left untouched)
   const userId = data.user.id
   const serviceClient = getServiceClient()
 
-  // Create settings row for new users if it doesn't exist yet
   const { data: existing } = await serviceClient
     .from('settings')
     .select('id')
@@ -56,5 +66,11 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.redirect(`${origin}/dashboard`)
+  // Build the redirect and attach session cookies to THIS response object
+  const response = NextResponse.redirect(`${base}/dashboard`)
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options)
+  })
+
+  return response
 }
