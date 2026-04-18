@@ -165,7 +165,11 @@ function buildStripSVG(
 // ── Cert loader: env var (production) → filesystem (local dev) ───────────────
 function loadCert(envVar: string, filename: string): Buffer {
   const b64 = process.env[envVar]
-  if (b64) return Buffer.from(b64, 'base64')
+  if (b64) {
+    console.log(`[loadCert] ${envVar} found in env (length=${b64.length})`)
+    return Buffer.from(b64, 'base64')
+  }
+  console.warn(`[loadCert] ${envVar} NOT in env — falling back to filesystem (${filename})`)
   // Local development fallback
   const certsDir = path.join(process.cwd(), 'certs')
   return readFileSync(path.join(certsDir, filename))
