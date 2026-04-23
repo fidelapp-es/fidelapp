@@ -283,21 +283,26 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
 
   pass.type = 'storeCard'
 
+  // primaryFields render as huge text overlaid ON the strip image (Apple Wallet behavior),
+  // which would cover the custom stamp-box design. We avoid them entirely and put all data
+  // in secondary/auxiliary fields that appear cleanly below the strip.
   if (cardType === 'stamps') {
-    pass.primaryFields.push({ key: 'stamps', label: 'SELLOS', value: primaryValue })
     pass.secondaryFields.push(
-      { key: 'name',   label: 'CLIENTE',      value: customer.name },
-      { key: 'visits', label: 'VISITAS',       value: String(customer.visits_count || 0) },
-      { key: 'spent',  label: 'TOTAL GASTADO', value: `${Number(customer.total_spent).toFixed(2)}€` }
-    )
-  } else {
-    pass.primaryFields.push({ key: 'metric', label: primaryLabel, value: primaryValue })
-    pass.secondaryFields.push(
-      { key: 'name',   label: 'CLIENTE',  value: customer.name },
-      { key: 'visits', label: 'VISITAS',  value: String(customer.visits_count || 0) }
+      { key: 'sellos',  label: 'SELLOS',        value: primaryValue },
+      { key: 'name',    label: 'CLIENTE',        value: customer.name },
+      { key: 'visits',  label: 'VISITAS',        value: String(customer.visits_count || 0) },
     )
     pass.auxiliaryFields.push(
-      { key: 'spent', label: 'TOTAL GASTADO', value: `${Number(customer.total_spent).toFixed(2)}€` }
+      { key: 'spent',  label: 'TOTAL GASTADO', value: `${Number(customer.total_spent).toFixed(2)}€` },
+    )
+  } else {
+    pass.secondaryFields.push(
+      { key: 'metric', label: primaryLabel,    value: primaryValue },
+      { key: 'name',   label: 'CLIENTE',       value: customer.name },
+      { key: 'visits', label: 'VISITAS',       value: String(customer.visits_count || 0) },
+    )
+    pass.auxiliaryFields.push(
+      { key: 'spent', label: 'TOTAL GASTADO', value: `${Number(customer.total_spent).toFixed(2)}€` },
     )
   }
 
