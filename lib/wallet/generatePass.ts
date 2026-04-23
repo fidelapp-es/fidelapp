@@ -183,8 +183,8 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     .from('customers').select('*').eq('id', customerId).single()
   if (cErr || !customer) throw new Error('Cliente no encontrado')
 
-  // owner_id may not exist on customers yet — just use the single settings row
-  const { data: settings } = await supabase.from('settings').select('*').single()
+  const { data: settings } = await supabase
+    .from('settings').select('*').eq('id', customer.owner_id).maybeSingle()
 
   // auth_token may not exist yet (pre-migration schema)
   const authToken = customer.auth_token ?? customer.id
