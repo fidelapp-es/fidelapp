@@ -11,6 +11,7 @@ export interface WalletDesign {
   header:       string        // text shown in band (business name variant)
   logo_url:     string | null // wallet-specific logo
   strip_url:    string | null // custom strip image (overrides generated)
+  icon_key:     string        // sector icon key (from walletIcons.ts)
 }
 
 export interface ThemeConfig {
@@ -30,6 +31,7 @@ const DEFAULTS: ThemeConfig = {
     header:       '',
     logo_url:     null,
     strip_url:    null,
+    icon_key:     'coffee',
   },
 }
 
@@ -42,7 +44,7 @@ export function parseThemeConfig(raw: string | null | undefined): ThemeConfig {
     return {
       mode:   parsed.mode === 'light' ? 'light' : 'dark',
       accent: parsed.accent || DEFAULTS.accent,
-      wallet: { ...DEFAULTS.wallet, ...(parsed.wallet || {}) },
+      wallet: { ...DEFAULTS.wallet, ...(parsed.wallet || {}), icon_key: parsed.wallet?.icon_key || DEFAULTS.wallet.icon_key },
     }
   } catch {
     // Legacy non-JSON value like 'warm', 'dark', 'urbanist'

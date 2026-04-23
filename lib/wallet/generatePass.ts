@@ -5,6 +5,7 @@ import path from 'path'
 import sharp from 'sharp'
 import { getServiceClient } from '@/lib/supabase'
 import { parseThemeConfig } from '@/lib/themeConfig'
+import { getIcon } from '@/lib/walletIcons'
 
 // ── Fallback PNG (solid color, no external deps) ──────────────────────────────
 function crc32(buf: Buffer): number {
@@ -81,15 +82,15 @@ function buildStripSVG(
   stampsCollected: number,
   stampsRequired: number,
   primaryValue: string,
+  iconKey: string = 'coffee',
 ): string {
   const W = 750, H = 246
+  const iconPath = getIcon(iconKey).d
 
-  const cup = `
-    <g transform="translate(598,20) scale(1.8)" opacity="0.55">
-      <path d="M4 8 L26 8 L22 34 L8 34 Z" fill="none" stroke="rgba(240,232,216,0.72)" stroke-width="1.3" stroke-linejoin="round"/>
-      <rect x="3" y="5.5" width="24" height="4" rx="2" fill="rgba(240,232,216,0.15)" stroke="rgba(240,232,216,0.65)" stroke-width="1.2"/>
-      <rect x="11" y="2" width="8" height="4.5" rx="1.5" fill="none" stroke="rgba(240,232,216,0.5)" stroke-width="1"/>
-      <line x1="6.5" y1="17" x2="23.5" y2="17" stroke="rgba(240,232,216,0.22)" stroke-width="5" stroke-linecap="round"/>
+  // Sector icon top-right (scaled from 24x24 viewBox to ~48px)
+  const iconG = `
+    <g transform="translate(685, 18) scale(2.0)" opacity="0.5">
+      <path d="${iconPath}" fill="rgba(240,232,216,0.9)"/>
     </g>`
 
   let stampsRow = ''
@@ -101,24 +102,16 @@ function buildStripSVG(
     for (let i = 0; i < cols; i++) {
       const x = startX + i * (stampW + gap)
       const filled = i < stampsCollected
+      // Scale 24x24 icon to fit stampW x stampW cell (scale = stampW/24 = 1.5)
+      const scale = stampW / 24
       stampsRow += `
         <rect x="${x}" y="${startY}" width="${stampW}" height="${stampW}" rx="7"
           fill="${filled ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}"
           stroke="${filled ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)'}"
           stroke-width="1.5"/>
-        ${filled
-          ? `<path d="M${x + 7} ${startY + 13} L${x + 29} ${startY + 13} L${x + 26} ${startY + 28} L${x + 10} ${startY + 28} Z"
-              fill="none" stroke="rgba(240,232,216,0.9)" stroke-width="1.4" stroke-linejoin="round"/>
-             <rect x="${x + 6}" y="${startY + 10}" width="24" height="5" rx="2.5"
-              stroke="rgba(240,232,216,0.8)" stroke-width="1.2" fill="none"/>
-             <rect x="${x + 13}" y="${startY + 5}" width="10" height="5" rx="1.5"
-              stroke="rgba(240,232,216,0.55)" stroke-width="1" fill="none"/>`
-          : `<path d="M${x + 7} ${startY + 13} L${x + 29} ${startY + 13} L${x + 26} ${startY + 28} L${x + 10} ${startY + 28} Z"
-              fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.4" stroke-linejoin="round"/>
-             <rect x="${x + 6}" y="${startY + 10}" width="24" height="5" rx="2.5"
-              stroke="rgba(255,255,255,0.3)" stroke-width="1.2" fill="none"/>
-             <rect x="${x + 13}" y="${startY + 5}" width="10" height="5" rx="1.5"
-              stroke="rgba(255,255,255,0.2)" stroke-width="1" fill="none"/>`}
+        <g transform="translate(${x}, ${startY}) scale(${scale})" opacity="${filled ? '0.9' : '0.3'}">
+          <path d="${iconPath}" fill="${filled ? 'rgba(240,232,216,0.95)' : 'rgba(240,232,216,0.4)'}"/>
+        </g>
       `
     }
   }
@@ -148,7 +141,7 @@ function buildStripSVG(
       fill="rgba(240,232,216,0.5)">PROGRAMA DE FIDELIZACIÓN</text>
     <line x1="40" y1="110" x2="${cardType === 'stamps' ? 700 : 400}" y2="110"
       stroke="rgba(240,232,216,0.2)" stroke-width="1"/>
-    ${cup}
+    ${iconG}
     ${stampsRow}
     ${cardType === 'stamps'
       ? `<text x="40" y="${H - 18}"
@@ -206,6 +199,7 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
   const walletHeader = themeConfig.wallet.header || businessName
   const walletLogoUrl= themeConfig.wallet.logo_url || settings?.logo_url || null
   const walletStrip  = themeConfig.wallet.strip_url   // custom strip image overrides generated
+  const walletIcon   = themeConfig.wallet.icon_key || 'coffee'
   const accentDeep   = darken(accentHex, 0.62)
 
   const stampsRequired  = settings?.stamps_required || 10
@@ -239,7 +233,7 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     }
   } else {
     // Auto-generate strip from SVG with design settings
-    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, cardType, stampsCollected, stampsRequired, primaryValue)
+    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, cardType, stampsCollected, stampsRequired, primaryValue, walletIcon)
     try {
       strip2x = await sharp(Buffer.from(svg)).png().toBuffer()
       strip1x = await sharp(strip2x).resize(375, 123).png().toBuffer()
