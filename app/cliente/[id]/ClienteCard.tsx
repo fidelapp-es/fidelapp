@@ -1,11 +1,12 @@
 'use client'
 
 import QRCode from 'react-qr-code'
-import { Star, Gift, TrendingUp, Coffee } from 'lucide-react'
+import { Star, Gift, TrendingUp } from 'lucide-react'
 import { Customer, Promotion } from '@/lib/types'
 import { useState, useEffect } from 'react'
 import { applyBrandColors } from '@/lib/themes'
 import { parseThemeConfig } from '@/lib/themeConfig'
+import { getIcon } from '@/lib/walletIcons'
 
 interface Settings {
   theme?: string
@@ -33,7 +34,9 @@ export default function ClienteCard({ customer, promotions, settings, cardUrl }:
     applyBrandColors(cfg.accent, cfg.mode)
   }, [settings?.theme])
 
-  const accent = parseThemeConfig(settings?.theme).accent
+  const themeConfig = parseThemeConfig(settings?.theme)
+  const accent = themeConfig.accent
+  const sectorIcon = getIcon(themeConfig.wallet.icon_key || 'coffee')
   const cardType = settings?.card_type || 'points'
   const businessName = settings?.business_name || 'Fidelapp'
   const stampsRequired = settings?.stamps_required || 10
@@ -66,7 +69,9 @@ export default function ClienteCard({ customer, promotions, settings, cardUrl }:
             <img src={settings.logo_url} alt={businessName} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8 }} />
           ) : (
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--fi-accent-bg)', border: '1px solid var(--fi-accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Coffee size={18} style={{ color: 'var(--fi-accent)' }} />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--fi-accent)">
+                <path d={sectorIcon.d} />
+              </svg>
             </div>
           )}
           <div>
@@ -152,10 +157,11 @@ export default function ClienteCard({ customer, promotions, settings, cardUrl }:
                     transition: 'all 0.25s',
                     boxShadow: filled ? '0 2px 10px rgba(0,0,0,0.2)' : 'none',
                   }}>
-                    <Coffee size={18} style={{
-                      color: filled ? '#fff' : 'var(--fi-text-muted)',
-                      opacity: filled ? 1 : 0.3,
-                    }} />
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                      fill={filled ? '#fff' : 'var(--fi-text-muted)'}
+                      style={{ opacity: filled ? 1 : 0.3 }}>
+                      <path d={sectorIcon.d} />
+                    </svg>
                   </div>
                 )
               })}
