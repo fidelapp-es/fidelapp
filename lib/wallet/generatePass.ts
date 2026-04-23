@@ -78,43 +78,10 @@ function buildStripSVG(
   businessName: string,
   accent: string,
   accentDeep: string,
-  cardType: string,
-  stampsCollected: number,
-  stampsRequired: number,
-  primaryValue: string,
   iconKey: string = 'coffee',
 ): string {
   const W = 750, H = 246
   const iconPath = getIcon(iconKey).d
-
-  // Sector icon top-right (scaled from 24x24 viewBox to ~48px)
-  const iconG = `
-    <g transform="translate(685, 18) scale(2.0)" opacity="0.5">
-      <path d="${iconPath}" fill="rgba(240,232,216,0.9)"/>
-    </g>`
-
-  let stampsRow = ''
-  if (cardType === 'stamps') {
-    const cols = Math.min(stampsRequired, 10)
-    const stampW = 36, gap = 8
-    const startX = 40
-    const startY = H - 68
-    for (let i = 0; i < cols; i++) {
-      const x = startX + i * (stampW + gap)
-      const filled = i < stampsCollected
-      // Scale 24x24 icon to fit stampW x stampW cell (scale = stampW/24 = 1.5)
-      const scale = stampW / 24
-      stampsRow += `
-        <rect x="${x}" y="${startY}" width="${stampW}" height="${stampW}" rx="7"
-          fill="${filled ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}"
-          stroke="${filled ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)'}"
-          stroke-width="1.5"/>
-        <g transform="translate(${x}, ${startY}) scale(${scale})" opacity="${filled ? '0.9' : '0.3'}">
-          <path d="${iconPath}" fill="${filled ? 'rgba(240,232,216,0.95)' : 'rgba(240,232,216,0.4)'}"/>
-        </g>
-      `
-    }
-  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <defs>
@@ -131,27 +98,17 @@ function buildStripSVG(
     <rect width="${W}" height="${H}" fill="url(#glow)"/>
     <circle cx="${W + 60}" cy="-60" r="180" fill="rgba(255,255,255,0.05)"/>
     <circle cx="-60" cy="${H + 60}" r="160" fill="rgba(0,0,0,0.1)"/>
-    <text x="40" y="66"
+    <g transform="translate(685, 18) scale(2.0)" opacity="0.5">
+      <path d="${iconPath}" fill="rgba(240,232,216,0.9)"/>
+    </g>
+    <text x="40" y="148"
       font-family="Georgia, 'Times New Roman', serif"
       font-size="52" font-weight="bold" letter-spacing="6"
       fill="rgba(240,232,216,0.92)">${businessName.toUpperCase().slice(0, 12)}</text>
-    <text x="42" y="94"
+    <text x="42" y="180"
       font-family="Arial, sans-serif"
       font-size="16" font-weight="300" letter-spacing="4"
       fill="rgba(240,232,216,0.5)">PROGRAMA DE FIDELIZACIÓN</text>
-    <line x1="40" y1="110" x2="${cardType === 'stamps' ? 700 : 400}" y2="110"
-      stroke="rgba(240,232,216,0.2)" stroke-width="1"/>
-    ${iconG}
-    ${stampsRow}
-    ${cardType === 'stamps'
-      ? `<text x="40" y="${H - 18}"
-          font-family="Arial, sans-serif" font-size="18" font-weight="300"
-          fill="rgba(240,232,216,0.6)" letter-spacing="1">
-          ${stampsCollected} de ${stampsRequired} cafés · ${Math.max(0, stampsRequired - stampsCollected)} para tu café gratis
-        </text>`
-      : `<text x="40" y="168"
-          font-family="Georgia, serif" font-size="72" font-weight="bold"
-          fill="rgba(240,232,216,0.95)">${primaryValue}</text>`}
   </svg>`
 }
 
@@ -233,7 +190,7 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     }
   } else {
     // Auto-generate strip from SVG with design settings
-    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, cardType, stampsCollected, stampsRequired, primaryValue, walletIcon)
+    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, walletIcon)
     try {
       strip2x = await sharp(Buffer.from(svg)).png().toBuffer()
       strip1x = await sharp(strip2x).resize(375, 123).png().toBuffer()

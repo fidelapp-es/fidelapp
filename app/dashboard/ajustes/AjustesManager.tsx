@@ -36,25 +36,22 @@ const BASE_FIELDS = [
   'theme',
 ]
 
-// ── Wallet card preview ───────────────────────────────────────────────────────
-function WalletPreview({ s, cardType, iconKey, stampsFilled, onStampClick }: {
+// ── Wallet card preview — mirrors real Apple Wallet storeCard layout ──────────
+function WalletPreview({ s, cardType, iconKey }: {
   s: any
   cardType: string
   iconKey: string
-  stampsFilled: number
-  onStampClick?: (i: number) => void
 }) {
   const stripColor = s.wallet_strip_color || s.custom_accent || '#B5312A'
   const bgColor    = s.wallet_bg_color    || '#F0E8D8'
   const fgColor    = s.wallet_fg_color    || '#2A1008'
   const labelColor = s.wallet_label_color || s.custom_accent || '#B5312A'
   const header     = s.wallet_header      || s.business_name || 'Mi negocio'
-  const stampsReq  = s.stamps_required    || 10
   const logoUrl    = s.wallet_logo_url    || s.logo_url      || null
   const stripUrl   = s.wallet_strip_url   || null
   const icon       = getIcon(iconKey)
 
-  function darken(hex: string, amt = 0.6) {
+  function darken(hex: string, amt = 0.62) {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
     if (!m) return hex
     return '#' + [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
@@ -62,137 +59,87 @@ function WalletPreview({ s, cardType, iconKey, stampsFilled, onStampClick }: {
   }
   const stripDeep = darken(stripColor)
 
+  const primaryLabel = cardType === 'points' ? 'PUNTOS' : cardType === 'cashback' ? 'CASHBACK' : 'SELLOS'
+  const primaryValue = cardType === 'points' ? '150' : cardType === 'cashback' ? '12.50€' : '3/10'
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 300, borderRadius: 16, background: bgColor, boxShadow: '0 8px 40px rgba(0,0,0,0.28)', overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      {/* Apple Wallet chrome — outer rounded rect with gradient bg */}
+      <div style={{
+        width: '100%', maxWidth: 300,
+        borderRadius: 20,
+        background: `linear-gradient(145deg, ${stripColor}33 0%, ${stripDeep}55 100%)`,
+        padding: 3,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.35)',
+      }}>
+        <div style={{ borderRadius: 17, background: bgColor, overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
 
-        {/* ── Strip ── */}
-        <div style={{ height: 100, position: 'relative', overflow: 'hidden', background: stripUrl ? undefined : `linear-gradient(160deg, ${stripColor} 0%, ${stripDeep} 100%)` }}>
-          {stripUrl
-            ? <img src={stripUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <>
-                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-                <div style={{ position: 'absolute', bottom: -20, left: -20, width: 90, height: 90, borderRadius: '50%', background: 'rgba(0,0,0,0.08)' }} />
-
-                {/* Sector icon — top right */}
-                <div style={{ position: 'absolute', top: 10, right: 12, opacity: 0.45 }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(240,232,216,0.9)">
-                    <path d={icon.d} />
-                  </svg>
-                </div>
-
-                {/* Business name — bottom left */}
-                <div style={{ position: 'absolute', bottom: 12, left: 14 }}>
-                  <p style={{ color: 'rgba(240,232,216,0.92)', fontSize: 20, fontWeight: 700, letterSpacing: 2, margin: 0, textTransform: 'uppercase', fontFamily: 'Georgia, serif' }}>
-                    {header.toUpperCase().slice(0, 12)}
-                  </p>
-                  <p style={{ color: 'rgba(240,232,216,0.5)', fontSize: 8, letterSpacing: 3, margin: 0 }}>PROGRAMA DE FIDELIZACIÓN</p>
-                </div>
-
-                {/* Stamps mini row — top left (stamps mode only) */}
-                {cardType === 'stamps' && (
-                  <div style={{ position: 'absolute', top: 10, left: 14, display: 'flex', gap: 3 }}>
-                    {Array.from({ length: Math.min(stampsReq, 8) }).map((_, i) => {
-                      const filled = i < stampsFilled
-                      return (
-                        <div
-                          key={i}
-                          onClick={() => onStampClick?.(i)}
-                          title={filled ? 'Quitar sello' : 'Añadir sello'}
-                          style={{
-                            width: 16, height: 16, borderRadius: 4,
-                            background: filled ? 'rgba(240,232,216,0.85)' : 'rgba(0,0,0,0.2)',
-                            border: '1px solid rgba(255,255,255,0.35)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: onStampClick ? 'pointer' : 'default',
-                            transition: 'background 0.15s',
-                          }}
-                        >
-                          {filled && <svg width="9" height="9" viewBox="0 0 24 24" fill={stripColor}><path d={icon.d} /></svg>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </>
-          }
-        </div>
-
-        {/* ── Card body ── */}
-        <div style={{ padding: '10px 14px 14px' }}>
-
-          {/* Logo row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          {/* ── Header bar (Apple Wallet: logo + logoText) ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px 8px', background: bgColor }}>
             {logoUrl
-              ? <img src={logoUrl} alt="" style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6 }} />
-              : <div style={{ width: 28, height: 28, borderRadius: 6, background: `${stripColor}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={stripColor}><path d={icon.d} /></svg>
+              ? <img src={logoUrl} alt="" style={{ width: 24, height: 24, objectFit: 'contain', borderRadius: 5 }} />
+              : <div style={{ width: 24, height: 24, borderRadius: 5, background: `${stripColor}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={stripColor}><path d={icon.d} /></svg>
                 </div>
             }
-            <span style={{ color: fgColor, fontWeight: 700, fontSize: 13, opacity: 0.7 }}>{header}</span>
+            <span style={{ color: fgColor, fontWeight: 700, fontSize: 12, letterSpacing: 0.3 }}>{header}</span>
           </div>
 
-          {/* Stamps — interactive */}
-          {cardType === 'stamps' && (
-            <div>
-              <p style={{ color: labelColor, fontSize: 9, fontWeight: 600, letterSpacing: 1, margin: '0 0 6px', textTransform: 'uppercase' }}>SELLOS</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {Array.from({ length: Math.min(stampsReq, 10) }).map((_, i) => {
-                  const filled = i < stampsFilled
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => onStampClick?.(i)}
-                      title={filled ? 'Quitar sello' : 'Añadir sello'}
-                      style={{
-                        width: 22, height: 22, borderRadius: 6,
-                        background: filled ? stripColor : `${stripColor}22`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: onStampClick ? 'pointer' : 'default',
-                        transition: 'all 0.15s',
-                        transform: filled ? 'scale(1)' : 'scale(0.92)',
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? '#fff' : `${stripColor}66`}><path d={icon.d} /></svg>
-                    </div>
-                  )
-                })}
-              </div>
-              <p style={{ color: fgColor, fontSize: 10, margin: '6px 0 0', opacity: 0.5 }}>
-                {stampsFilled} / {stampsReq} · {Math.max(0, stampsReq - stampsFilled)} para el premio
-              </p>
-            </div>
-          )}
+          {/* ── Strip image area ── */}
+          <div style={{ height: 98, position: 'relative', overflow: 'hidden', background: stripUrl ? undefined : `linear-gradient(160deg, ${stripColor} 0%, ${stripDeep} 100%)` }}>
+            {stripUrl
+              ? <img src={stripUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <>
+                  <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ position: 'absolute', bottom: -20, left: -20, width: 90, height: 90, borderRadius: '50%', background: 'rgba(0,0,0,0.08)' }} />
+                  <div style={{ position: 'absolute', top: 10, right: 12, opacity: 0.45 }}>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(240,232,216,0.9)"><path d={icon.d} /></svg>
+                  </div>
+                  <div style={{ position: 'absolute', bottom: 10, left: 14 }}>
+                    <p style={{ color: 'rgba(240,232,216,0.92)', fontSize: 18, fontWeight: 700, letterSpacing: 2, margin: 0, textTransform: 'uppercase', fontFamily: 'Georgia, serif' }}>
+                      {header.toUpperCase().slice(0, 12)}
+                    </p>
+                    <p style={{ color: 'rgba(240,232,216,0.5)', fontSize: 7, letterSpacing: 3, margin: 0 }}>PROGRAMA DE FIDELIZACIÓN</p>
+                  </div>
+                </>
+            }
+          </div>
 
-          {cardType === 'points' && (
-            <div>
-              <p style={{ color: labelColor, fontSize: 9, fontWeight: 600, letterSpacing: 1, margin: '0 0 2px', textTransform: 'uppercase' }}>PUNTOS</p>
-              <p style={{ color: fgColor, fontSize: 28, fontWeight: 700, margin: 0, lineHeight: 1 }}>150</p>
-            </div>
-          )}
-          {cardType === 'cashback' && (
-            <div>
-              <p style={{ color: labelColor, fontSize: 9, fontWeight: 600, letterSpacing: 1, margin: '0 0 2px', textTransform: 'uppercase' }}>CASHBACK</p>
-              <p style={{ color: fgColor, fontSize: 28, fontWeight: 700, margin: 0, lineHeight: 1 }}>12.50€</p>
-            </div>
-          )}
-
-          {/* Secondary fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${fgColor}18` }}>
-            {['CLIENTE', 'VISITAS', 'GASTADO'].map((lbl, i) => (
-              <div key={lbl}>
-                <p style={{ color: labelColor, fontSize: 7, fontWeight: 600, letterSpacing: 1, margin: 0, textTransform: 'uppercase' }}>{lbl}</p>
-                <p style={{ color: fgColor, fontSize: 11, fontWeight: 600, margin: '2px 0 0' }}>{i === 0 ? 'Ana García' : i === 1 ? '5' : '47€'}</p>
+          {/* ── Secondary fields row (3 columns, below strip) ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, padding: '8px 14px 0' }}>
+            {[
+              { label: primaryLabel, value: primaryValue },
+              { label: 'CLIENTE',    value: 'Ana García' },
+              { label: 'VISITAS',    value: '5' },
+            ].map(f => (
+              <div key={f.label} style={{ paddingRight: 4 }}>
+                <p style={{ color: labelColor, fontSize: 7, fontWeight: 600, letterSpacing: 0.8, margin: 0, textTransform: 'uppercase' }}>{f.label}</p>
+                <p style={{ color: fgColor, fontSize: 11, fontWeight: 600, margin: '2px 0 0' }}>{f.value}</p>
               </div>
             ))}
           </div>
 
-          {/* QR placeholder */}
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 54, height: 54, borderRadius: 8, border: `2px solid ${fgColor}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, opacity: 0.4 }}>▪</div>
+          {/* ── Auxiliary fields row ── */}
+          <div style={{ padding: '6px 14px 0' }}>
+            <p style={{ color: labelColor, fontSize: 7, fontWeight: 600, letterSpacing: 0.8, margin: 0, textTransform: 'uppercase' }}>TOTAL GASTADO</p>
+            <p style={{ color: fgColor, fontSize: 11, fontWeight: 600, margin: '2px 0 0' }}>47.00€</p>
+          </div>
+
+          {/* ── QR placeholder ── */}
+          <div style={{ padding: '8px 14px 14px', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: 6, border: `1.5px solid ${fgColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35 }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill={fgColor}>
+                <path d="M3 3h7v7H3zm1 1v5h5V4zm1 1h3v3H5zm8-2h7v7h-7zm1 1v5h5V4zm1 1h3v3h-3zM3 13h7v7H3zm1 1v5h5v-5zm1 1h3v3H5zm8 0h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2zm-2 2h2v-2h-2v2zm-2-2v2h2v-2h-2zm0-4h2v2h-2v-2z"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Caption */}
+      <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, textAlign: 'center', margin: 0 }}>
+        Diseño real en Apple Wallet
+      </p>
     </div>
   )
 }
@@ -237,7 +184,6 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
     wallet_strip_url:    initTheme.wallet.strip_url,
     wallet_icon:         initTheme.wallet.icon_key || 'coffee',
   })
-  const [previewStamps, setPreviewStamps] = useState(3)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingWalletLogo, setUploadingWalletLogo] = useState(false)
@@ -330,10 +276,6 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
   const wBg     = settings.wallet_bg_color    || '#F0E8D8'
   const wFg     = settings.wallet_fg_color    || '#2A1008'
   const wLabel  = settings.wallet_label_color || currentAccent || '#B5312A'
-
-  function handleStampClick(i: number) {
-    setPreviewStamps(prev => i < prev ? i : i + 1)
-  }
 
   return (
     <div className="space-y-6">
@@ -452,8 +394,8 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
           <div className="glass-strong rounded-2xl p-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <h2 style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 16, margin: 0 }}>Vista previa en tiempo real</h2>
-                <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginTop: 4 }}>Toca los sellos para simular visitas</p>
+                <h2 style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 16, margin: 0 }}>Vista previa</h2>
+                <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginTop: 4 }}>Así verá el cliente su tarjeta en Apple Wallet</p>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 {CARD_TYPES.map(ct => (
@@ -468,27 +410,13 @@ export default function AjustesManager({ initialSettings }: { initialSettings: a
               s={settings}
               cardType={walletPreviewType}
               iconKey={settings.wallet_icon || 'coffee'}
-              stampsFilled={previewStamps}
-              onStampClick={handleStampClick}
             />
-            {walletPreviewType === 'stamps' && (
-              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 8 }}>
-                <button onClick={() => setPreviewStamps(0)}
-                  style={{ touchAction: 'manipulation', padding: '4px 12px', borderRadius: 8, border: '1px solid var(--fi-border)', background: 'var(--fi-glass)', color: 'var(--fi-text-muted)', fontSize: 11, cursor: 'pointer' }}>
-                  Vaciar
-                </button>
-                <button onClick={() => setPreviewStamps(settings.stamps_required || 10)}
-                  style={{ touchAction: 'manipulation', padding: '4px 12px', borderRadius: 8, border: '1px solid var(--fi-border)', background: 'var(--fi-glass)', color: 'var(--fi-text-muted)', fontSize: 11, cursor: 'pointer' }}>
-                  Completar
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Icon gallery */}
           <div className="glass-strong rounded-2xl p-6">
             <h3 style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Icono del sector</h3>
-            <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginBottom: 14 }}>Aparece en la banda superior y en los sellos de la tarjeta</p>
+            <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, marginBottom: 14 }}>Aparece decorativamente en la banda superior de la tarjeta</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
               {WALLET_ICONS.map(icon => {
                 const active = (settings.wallet_icon || 'coffee') === icon.key
