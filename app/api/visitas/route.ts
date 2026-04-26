@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       const oId     = objectId(customer.id)
       const cId     = classId(customer.owner_id)
       await upsertLoyaltyObject(
-        buildObjectPayload(oId, cId, updated, cardType, stampsRequired, cardUrl),
+        buildObjectPayload(oId, cId, updated, cardType, stampsRequired, cardUrl, settings),
         token,
       )
     } catch (e: any) {

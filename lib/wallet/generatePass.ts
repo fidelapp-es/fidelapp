@@ -270,5 +270,14 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
 
   pass.setBarcodes({ message: cardUrl, format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' })
 
+  // Native Apple Wallet location alert — fires automatically when customer is nearby
+  if (settings?.geo_enabled && settings?.geo_lat && settings?.geo_lng) {
+    pass.setLocations({
+      latitude:     Number(settings.geo_lat),
+      longitude:    Number(settings.geo_lng),
+      relevantText: settings.geo_message || `¡Estás cerca de ${businessName}! Muestra tu tarjeta.`,
+    })
+  }
+
   return pass.getAsBuffer()
 }

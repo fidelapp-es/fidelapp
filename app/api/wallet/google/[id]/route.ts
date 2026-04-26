@@ -43,7 +43,7 @@ export async function GET(
 
     // Sync class (business settings) and object (customer data) to Google API
     await upsertLoyaltyClass(buildClassPayload(cId, businessName, accentHex, logoUrl), token)
-    await upsertLoyaltyObject(buildObjectPayload(oId, cId, customer, cardType, stampsRequired, cardUrl), token)
+    await upsertLoyaltyObject(buildObjectPayload(oId, cId, customer, cardType, stampsRequired, cardUrl, settings), token)
 
     // JWT only references the object ID — Google fetches the live data from its API
     const saveJwt = buildSaveJwt(creds, oId)

@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   }
 
   // Upsert the registration (device may re-register with a new push token)
+  console.log(`[PassKit] Registering device ${deviceId} for customer ${serialNumber}`)
   const { error } = await supabase.from('pass_registrations').upsert(
     {
       device_library_id: deviceId,
@@ -49,10 +50,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   )
 
   if (error) {
-    console.error('[PassKit] Registration error:', error.message)
+    console.error('[PassKit] Registration error:', error.message, error.code)
     return new NextResponse(null, { status: 500 })
   }
 
+  console.log(`[PassKit] Device registered OK for customer ${serialNumber}`)
   return new NextResponse(null, { status: 201 })
 }
 

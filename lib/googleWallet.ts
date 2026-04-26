@@ -73,6 +73,7 @@ export function buildObjectPayload(
   cardType: string,
   stampsRequired: number,
   cardUrl: string,
+  settings?: any,
 ) {
   const stampsCollected = (customer.visits_count || 0) % stampsRequired
 
@@ -86,7 +87,7 @@ export function buildObjectPayload(
     pointsLabel = 'Sellos'; pointsValue = `${stampsCollected}/${stampsRequired}`
   }
 
-  return {
+  const obj: Record<string, any> = {
     id,
     classId: cId,
     state: 'ACTIVE',
@@ -95,10 +96,19 @@ export function buildObjectPayload(
     loyaltyPoints: { balance: { string: pointsValue }, label: pointsLabel },
     barcode: { type: 'QR_CODE', value: cardUrl, alternateText: customer.name },
     textModulesData: [
-      { header: 'VISITAS',       body: String(customer.visits_count || 0),                          id: 'visitas'  },
-      { header: 'TOTAL GASTADO', body: `${Number(customer.total_spent || 0).toFixed(2)}€`,          id: 'gastado'  },
+      { header: 'VISITAS',       body: String(customer.visits_count || 0),             id: 'visitas' },
+      { header: 'TOTAL GASTADO', body: `${Number(customer.total_spent || 0).toFixed(2)}€`, id: 'gastado' },
     ],
   }
+
+  if (settings?.geo_enabled && settings?.geo_lat && settings?.geo_lng) {
+    obj.locations = [{
+      latitude:  Number(settings.geo_lat),
+      longitude: Number(settings.geo_lng),
+    }]
+  }
+
+  return obj
 }
 
 // ── Generic upsert (GET → create or patch) ────────────────────────────────────
