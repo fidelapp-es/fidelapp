@@ -1,14 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Customer } from '@/lib/types'
-import { Search, Star, ExternalLink, Pencil, Trash2, X, Save, AlertTriangle } from 'lucide-react'
+import { Search, Star, ExternalLink, Pencil, Trash2, X, Save, AlertTriangle, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function ClientesTable({ customers: initial }: { customers: Customer[] }) {
+  const router = useRouter()
   const [customers, setCustomers] = useState(initial)
   const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)
   const [deleting, setDeleting] = useState<Customer | null>(null)
   const [saving, setSaving] = useState(false)
@@ -25,6 +28,12 @@ export default function ClientesTable({ customers: initial }: { customers: Custo
     if (points >= 100) return { label: 'Oro', color: '#F59E0B' }
     if (points >= 50) return { label: 'Plata', color: '#94A3B8' }
     return { label: 'Nuevo', color: '#60A5FA' }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    router.refresh()
+    setTimeout(() => setRefreshing(false), 800)
   }
 
   function openEdit(c: Customer) {
@@ -73,8 +82,8 @@ export default function ClientesTable({ customers: initial }: { customers: Custo
     <>
       <div className="glass" style={{ borderRadius: 16, overflow: 'hidden' }}>
         {/* Búsqueda */}
-        <div style={{ padding: 16, borderBottom: '1px solid var(--fi-border)' }}>
-          <div style={{ position: 'relative' }}>
+        <div style={{ padding: 16, borderBottom: '1px solid var(--fi-border)', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
             <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--fi-text-muted)' }} />
             <input
               placeholder="Buscar por nombre, email o teléfono..."
@@ -83,6 +92,10 @@ export default function ClientesTable({ customers: initial }: { customers: Custo
               style={{ width: '100%', paddingLeft: 40, paddingRight: 14, paddingTop: 10, paddingBottom: 10, background: 'var(--fi-glass)', border: '1px solid var(--fi-border)', borderRadius: 12, fontSize: 14, color: 'var(--fi-text)', outline: 'none', fontFamily: 'inherit' }}
             />
           </div>
+          <button onClick={handleRefresh} title="Actualizar datos" disabled={refreshing}
+            style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 10, border: '1px solid var(--fi-border)', background: 'var(--fi-glass)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: refreshing ? 0.5 : 1 }}>
+            <RefreshCw style={{ width: 15, height: 15, color: 'var(--fi-text-muted)', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+          </button>
         </div>
 
         {/* Vista móvil */}

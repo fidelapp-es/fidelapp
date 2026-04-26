@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 import { pushPassUpdate } from '@/lib/wallet/apns'
 import { parseThemeConfig } from '@/lib/themeConfig'
 import {
@@ -85,6 +86,10 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+
+  // Invalidate dashboard cache so clientes page shows fresh data immediately
+  revalidatePath('/dashboard/clientes')
+  revalidatePath('/dashboard')
 
   // ── Wallet sync (fire-and-forget) ─────────────────────────────────────────
   // Apple Wallet: APNs silent push → iOS fetches updated pass from our web service
