@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
 import { pushPassUpdate } from '@/lib/wallet/apns'
+import { parseThemeConfig } from '@/lib/themeConfig'
+import {
+  loadGoogleCreds, getAccessToken,
+  classId, objectId, buildObjectPayload, upsertLoyaltyObject,
+} from '@/lib/googleWallet'
 
 export async function POST(req: NextRequest) {
   const { supabase, user } = await getAuthUser()
@@ -69,10 +74,11 @@ export async function POST(req: NextRequest) {
   const { data: updated, error: updateError } = await supabase
     .from('customers')
     .update({
-      points: newPoints,
-      total_spent: Number(customer.total_spent) + Number(amount_spent),
-      visits_count: newVisits,
+      points:           newPoints,
+      total_spent:      Number(customer.total_spent) + Number(amount_spent),
+      visits_count:     newVisits,
       cashback_balance: newCashback,
+      updated_at:       new Date().toISOString(),
     })
     .eq('id', customer.id)
     .select()
@@ -80,10 +86,29 @@ export async function POST(req: NextRequest) {
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
-  // Push Apple Wallet update (fire-and-forget — don't block the response)
+  // ── Wallet sync (fire-and-forget) ─────────────────────────────────────────
+  // Apple Wallet: APNs silent push → iOS fetches updated pass from our web service
   pushPassUpdate(customer.id).catch(err =>
-    console.error('[Wallet] Push update failed:', err.message)
+    console.error('[Apple Wallet] Push failed:', err.message)
   )
+
+  // Google Wallet: update the LoyaltyObject directly via REST API
+  ;(async () => {
+    try {
+      const appUrl  = process.env.NEXT_PUBLIC_APP_URL || ''
+      const cardUrl = `${appUrl}/cliente/${customer.id}`
+      const creds   = loadGoogleCreds()
+      const token   = await getAccessToken(creds)
+      const oId     = objectId(customer.id)
+      const cId     = classId(customer.owner_id)
+      await upsertLoyaltyObject(
+        buildObjectPayload(oId, cId, updated, cardType, stampsRequired, cardUrl),
+        token,
+      )
+    } catch (e: any) {
+      console.error('[Google Wallet] Object update failed:', e.message)
+    }
+  })()
 
   let display: Record<string, any> = {}
   if (cardType === 'points') {
