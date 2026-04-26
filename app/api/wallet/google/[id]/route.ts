@@ -2,19 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase'
 import { parseThemeConfig } from '@/lib/themeConfig'
 import jwt from 'jsonwebtoken'
-import { readFileSync } from 'fs'
-import path from 'path'
 
 const ISSUER_ID = '3388000000023115382'
 const SERVICE_ACCOUNT = 'fidelapp-wallet@fidelapp-493317.iam.gserviceaccount.com'
 
 function loadCredentials(): { private_key: string; client_email: string } {
-  const b64 = process.env.GOOGLE_WALLET_CREDENTIALS
-  if (b64) {
-    return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'))
-  }
-  const filePath = path.join(process.cwd(), 'certs', 'google-wallet-credentials.json')
-  return JSON.parse(readFileSync(filePath, 'utf8'))
+  const raw = process.env.GOOGLE_WALLET_CREDENTIALS_JSON
+  if (!raw) throw new Error('GOOGLE_WALLET_CREDENTIALS_JSON no está configurada')
+  return JSON.parse(raw)
 }
 
 export async function GET(
