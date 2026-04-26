@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Customer } from '@/lib/types'
 import { Search, Star, ExternalLink, Pencil, Trash2, X, Save, AlertTriangle, RefreshCw } from 'lucide-react'
@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 export default function ClientesTable({ customers: initial }: { customers: Customer[] }) {
   const router = useRouter()
   const [customers, setCustomers] = useState(initial)
+
+  useEffect(() => { setCustomers(initial) }, [initial])
   const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)
