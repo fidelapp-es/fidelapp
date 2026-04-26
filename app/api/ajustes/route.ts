@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
+import { parseThemeConfig } from '@/lib/themeConfig'
+import {
+  loadGoogleCreds, getAccessToken,
+  classId, buildClassPayload,
+  upsertLoyaltyClass,
+} from '@/lib/googleWallet'
 
 // Columns that DEFINITELY exist in the settings table (original schema)
 const BASE_COLS = new Set([
@@ -57,5 +63,22 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Sync Google Wallet loyalty class with updated business settings (fire-and-forget)
+  try {
+    const themeConfig  = parseThemeConfig(data.theme)
+    const accentHex    = themeConfig.wallet.strip_color || themeConfig.accent || '#B5312A'
+    const businessName = data.business_name || 'Fidelapp'
+    const logoUrl      = themeConfig.wallet.logo_url || data.logo_url || null
+    const cId          = classId(user.id)
+
+    const creds = loadGoogleCreds()
+    const token = await getAccessToken(creds)
+    await upsertLoyaltyClass(buildClassPayload(cId, businessName, accentHex, logoUrl), token)
+  } catch (e: any) {
+    // Non-fatal: log but don't fail the settings save
+    console.warn('[Google Wallet] class sync failed:', e.message)
+  }
+
   return NextResponse.json(data)
 }
