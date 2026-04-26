@@ -23,8 +23,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     .eq('id', serialNumber)
     .single()
 
-  const expectedToken = customer?.auth_token ? String(customer.auth_token) : serialNumber
-  if (!customer || expectedToken !== token) {
+  const validTokens = [serialNumber, customer?.auth_token ? String(customer.auth_token) : null].filter(Boolean)
+  if (!customer || !validTokens.includes(token)) {
     return new NextResponse(null, { status: 401 })
   }
 
@@ -74,8 +74,8 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     .eq('id', serialNumber)
     .single()
 
-  const expectedToken2 = customer?.auth_token ? String(customer.auth_token) : serialNumber
-  if (!customer || expectedToken2 !== token) {
+  const validTokens2 = [serialNumber, customer?.auth_token ? String(customer.auth_token) : null].filter(Boolean)
+  if (!customer || !validTokens2.includes(token)) {
     return new NextResponse(null, { status: 401 })
   }
 

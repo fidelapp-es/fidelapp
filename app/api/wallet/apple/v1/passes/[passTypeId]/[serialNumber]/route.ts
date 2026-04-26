@@ -29,9 +29,10 @@ export async function GET(
     return new NextResponse(null, { status: 401 })
   }
 
-  // auth_token may be UUID or customer.id (pre-migration fallback)
-  const expectedToken = customer.auth_token ? String(customer.auth_token) : serialNumber
-  if (expectedToken !== token) {
+  // Accept both auth_token and customer.id — passes may have been created
+  // before auth_token existed, or with either value as the authentication token
+  const validTokens = [serialNumber, customer.auth_token ? String(customer.auth_token) : null].filter(Boolean)
+  if (!validTokens.includes(token)) {
     return new NextResponse(null, { status: 401 })
   }
 
