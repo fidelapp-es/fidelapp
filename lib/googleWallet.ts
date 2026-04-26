@@ -12,8 +12,12 @@ export interface GoogleCreds {
 
 export function loadGoogleCreds(): GoogleCreds {
   const raw = process.env.GOOGLE_WALLET_CREDENTIALS_JSON
-  if (!raw) throw new Error('GOOGLE_WALLET_CREDENTIALS_JSON no está configurada')
-  return JSON.parse(raw)
+  if (!raw) throw new Error('GOOGLE_WALLET_CREDENTIALS_JSON no configurada — añádela en Coolify o en .env.local')
+  try {
+    return JSON.parse(raw)
+  } catch {
+    throw new Error('GOOGLE_WALLET_CREDENTIALS_JSON no es JSON válido')
+  }
 }
 
 // ── OAuth2 access token using service account ─────────────────────────────────
@@ -34,9 +38,9 @@ export async function getAccessToken(creds: GoogleCreds): Promise<string> {
   return data.access_token
 }
 
-// ── Build stable IDs ──────────────────────────────────────────────────────────
-export function classId(ownerId: string)    { return `${ISSUER_ID}.owner_${ownerId.replace(/-/g, '_')}` }
-export function objectId(customerId: string) { return `${ISSUER_ID}.cust_${customerId.replace(/-/g, '_')}` }
+// ── Build stable IDs — must match the format used when the pass was first created ──
+export function classId(ownerId: string)     { return `${ISSUER_ID}.${(ownerId || 'default').replace(/-/g, '_')}` }
+export function objectId(customerId: string) { return `${ISSUER_ID}.${customerId.replace(/-/g, '_')}` }
 
 // ── Build class payload from business settings ────────────────────────────────
 export function buildClassPayload(
