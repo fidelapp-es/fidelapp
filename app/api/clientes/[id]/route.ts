@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { pushPassUpdate } from '@/lib/wallet/apns'
+import {
+  loadGoogleCreds, getAccessToken,
+  classId, objectId, buildObjectPayload, upsertLoyaltyObject,
+} from '@/lib/googleWallet'
 
 export async function GET(
   _req: NextRequest,
@@ -43,6 +49,38 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Invalidate Next.js cache for the customer card page and dashboard
+  revalidatePath(`/cliente/${id}`)
+  revalidatePath('/dashboard/clientes')
+
+  // Sync Apple Wallet (fire-and-forget)
+  pushPassUpdate(id).catch(err =>
+    console.error('[Apple Wallet] Push failed:', err.message)
+  )
+
+  // Sync Google Wallet (fire-and-forget)
+  ;(async () => {
+    try {
+      const { data: settings } = await supabase
+        .from('settings').select('*').eq('id', user.id).maybeSingle()
+      const cardType = settings?.card_type || 'points'
+      const stampsRequired = settings?.stamps_required || 10
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+      const cardUrl = `${appUrl}/cliente/${id}`
+      const creds = loadGoogleCreds()
+      const token = await getAccessToken(creds)
+      const oId = objectId(id)
+      const cId = classId(data.owner_id)
+      await upsertLoyaltyObject(
+        buildObjectPayload(oId, cId, data, cardType, stampsRequired, cardUrl, settings),
+        token,
+      )
+    } catch (e: any) {
+      console.error('[Google Wallet] Object update failed:', e.message)
+    }
+  })()
+
   return NextResponse.json(data)
 }
 
