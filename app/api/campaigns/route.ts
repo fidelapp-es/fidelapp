@@ -5,7 +5,7 @@ export async function GET() {
   const { supabase, user } = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data, error } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('campaigns').select('*').eq('owner_id', user.id).order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
