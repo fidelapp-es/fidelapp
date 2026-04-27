@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Send, Trash2, Users, Crown, Star, Clock, X, Megaphone, BarChart2, CheckCircle } from 'lucide-react'
+import { Plus, Send, Trash2, Users, Crown, Star, Clock, X, Megaphone, BarChart2, CheckCircle, Bell, Mail, MessageSquare, AlertCircle, Info } from 'lucide-react'
 import { useThemeApp } from '../ThemeProvider'
 
 interface Campaign {
@@ -22,41 +22,34 @@ interface Campaign {
 interface Props {
   initialCampaigns: Campaign[]
   customerCounts: { all: number; vip: number; oro: number; new: number; inactive: number }
+  emailConfigured: boolean
 }
 
 const SEGMENTS = [
-  { id: 'all', label: 'Todos los clientes', icon: Users, color: '#6366F1' },
-  { id: 'vip', label: 'Clientes VIP (200+ pts)', icon: Crown, color: '#F59E0B' },
-  { id: 'oro', label: 'Clientes Oro (100-199 pts)', icon: Star, color: '#C8873A' },
-  { id: 'new', label: 'Clientes nuevos (<20 pts)', icon: Users, color: '#10B981' },
-  { id: 'inactive', label: 'Inactivos (+30 días)', icon: Clock, color: '#6B7280' },
-]
-
-const TYPES = [
-  { id: 'push', label: 'Notificación Push', emoji: '🔔' },
-  { id: 'email', label: 'Email', emoji: '📧' },
-  { id: 'sms', label: 'SMS', emoji: '💬' },
+  { id: 'all',      label: 'Todos los clientes',        icon: Users,  color: '#6366F1' },
+  { id: 'vip',      label: 'Clientes VIP (200+ pts)',   icon: Crown,  color: '#F59E0B' },
+  { id: 'oro',      label: 'Clientes Oro (100-199 pts)',icon: Star,   color: '#C8873A' },
+  { id: 'new',      label: 'Clientes nuevos (<20 pts)', icon: Users,  color: '#10B981' },
+  { id: 'inactive', label: 'Inactivos (+30 días)',       icon: Clock,  color: '#6B7280' },
 ]
 
 const TEMPLATES = [
-  { title: '¡Oferta especial!', message: 'Tenemos una oferta exclusiva para ti hoy. ¡Ven a visitarnos y disfruta de tu descuento!' },
-  { title: 'Te echamos de menos', message: 'Hace tiempo que no te vemos. ¡Vuelve y gana el doble de puntos esta semana!' },
-  { title: 'Nuevo producto', message: 'Acabamos de añadir nuevos productos que te van a encantar. ¡Pásate a verlos!' },
+  { title: '¡Oferta especial!',       message: 'Tenemos una oferta exclusiva para ti hoy. ¡Ven a visitarnos y disfruta de tu descuento!' },
+  { title: 'Te echamos de menos',     message: 'Hace tiempo que no te vemos. ¡Vuelve y gana el doble de puntos esta semana!' },
+  { title: 'Nuevo producto',          message: 'Acabamos de añadir nuevos productos que te van a encantar. ¡Pásate a verlos!' },
   { title: 'Puntos a punto de expirar', message: 'Tienes puntos que caducan pronto. ¡Canjéalos antes de perderlos!' },
 ]
 
-export default function MarketingManager({ initialCampaigns, customerCounts }: Props) {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns)
-  const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [sending, setSending] = useState<string | null>(null)
+export default function MarketingManager({ initialCampaigns, customerCounts, emailConfigured }: Props) {
+  const [campaigns, setCampaigns]   = useState<Campaign[]>(initialCampaigns)
+  const [showForm, setShowForm]     = useState(false)
+  const [loading, setLoading]       = useState(false)
+  const [sending, setSending]       = useState<string | null>(null)
   const { theme } = useThemeApp()
 
   const accentText = theme === 'dark' ? '#0D0B09' : '#FFFFFF'
 
-  const [form, setForm] = useState({
-    title: '', message: '', type: 'push', segment: 'all',
-  })
+  const [form, setForm] = useState({ title: '', message: '', type: 'push', segment: 'all' })
 
   function applyTemplate(t: typeof TEMPLATES[0]) {
     setForm(prev => ({ ...prev, title: t.title, message: t.message }))
@@ -80,6 +73,10 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
   }
 
   async function handleSend(campaign: Campaign) {
+    if (campaign.type === 'email' && !emailConfigured) {
+      toast.error('Email no configurado. Añade RESEND_API_KEY en Coolify.')
+      return
+    }
     setSending(campaign.id)
     try {
       const res = await fetch(`/api/campaigns/${campaign.id}`, {
@@ -89,7 +86,11 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
       })
       const updated = await res.json()
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? updated : c))
-      toast.success(`Campaña enviada a ${updated.sent_count} clientes`)
+      if (campaign.type === 'push') {
+        toast.success(`Notificación enviada — ${updated.sent_count} tarjetas actualizadas`)
+      } else {
+        toast.success(`Email enviado a ${updated.sent_count} clientes`)
+      }
     } finally { setSending(null) }
   }
 
@@ -102,16 +103,52 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
 
   const segCount = (id: string) => customerCounts[id as keyof typeof customerCounts] ?? 0
 
+  const TYPES = [
+    { id: 'push',  label: 'Notificación Push', emoji: '🔔', icon: Bell,           available: true,           desc: 'Actualiza la tarjeta en Apple Wallet y Google Wallet de todos los clientes del segmento.' },
+    { id: 'email', label: 'Email',              emoji: '📧', icon: Mail,           available: emailConfigured, desc: emailConfigured ? 'Envía un email personalizado a todos los clientes con email registrado.' : 'Requiere configurar RESEND_API_KEY en Coolify.' },
+    { id: 'sms',   label: 'SMS',                emoji: '💬', icon: MessageSquare,  available: false,          desc: 'Próximamente disponible.' },
+  ]
+
   return (
     <div className="space-y-6">
-      {/* Stats de audiencia */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {SEGMENTS.map(seg => (
-          <div key={seg.id} className="glass-strong rounded-2xl p-4 text-center">
-            <p style={{ color: seg.color, fontWeight: 700, fontSize: 24 }}>{segCount(seg.id)}</p>
-            <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, marginTop: 2 }}>{seg.label.split(' ')[0]} {seg.label.split(' ')[1]}</p>
+
+      {/* Canal status */}
+      <div className="grid grid-cols-3 gap-3">
+        {TYPES.map(t => (
+          <div key={t.id} className="glass-strong rounded-2xl p-4" style={{ border: `1px solid ${t.available ? 'var(--fi-accent-border)' : 'var(--fi-border)'}`, opacity: t.available ? 1 : 0.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 18 }}>{t.emoji}</span>
+              <span style={{ color: 'var(--fi-text)', fontWeight: 600, fontSize: 13 }}>{t.label}</span>
+              {t.available
+                ? <CheckCircle style={{ width: 14, height: 14, color: '#10B981', marginLeft: 'auto' }} />
+                : <AlertCircle style={{ width: 14, height: 14, color: '#6B7280', marginLeft: 'auto' }} />
+              }
+            </div>
+            <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, lineHeight: 1.4 }}>{t.desc}</p>
           </div>
         ))}
+      </div>
+
+      {/* Nota sobre push */}
+      <div style={{ display: 'flex', gap: 10, padding: '12px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+        <Info style={{ width: 16, height: 16, color: '#6366F1', flexShrink: 0, marginTop: 1 }} />
+        <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
+          <strong style={{ color: 'var(--fi-text)' }}>Notificación Push:</strong> actualiza las tarjetas en Wallet de los clientes que la tengan guardada. iOS muestra la notificación de actualización de la tarjeta automáticamente.
+          Las <strong style={{ color: 'var(--fi-text)' }}>notificaciones de proximidad</strong> (geocatch) se configuran en Ajustes → Geocatch y se activan automáticamente al entrar en el radio configurado.
+        </p>
+      </div>
+
+      {/* Stats de audiencia */}
+      <div>
+        <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, fontWeight: 500 }}>Audiencia</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {SEGMENTS.map(seg => (
+            <div key={seg.id} className="glass-strong rounded-2xl p-4 text-center">
+              <p style={{ color: seg.color, fontWeight: 700, fontSize: 24 }}>{segCount(seg.id)}</p>
+              <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, marginTop: 2 }}>{seg.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Botón nueva campaña */}
@@ -127,7 +164,7 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
 
       {/* Modal nueva campaña */}
       {showForm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ touchAction: 'manipulation' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)} />
           <div className="relative z-10 w-full max-w-lg rounded-2xl p-6 space-y-5" style={{ background: 'var(--fi-glass-strong)', border: '1px solid var(--fi-border)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex items-center justify-between">
@@ -135,7 +172,6 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fi-text-muted)' }}><X style={{ width: 18, height: 18 }} /></button>
             </div>
 
-            {/* Templates */}
             <div>
               <p style={{ color: 'var(--fi-text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Plantillas rápidas</p>
               <div className="grid grid-cols-2 gap-2">
@@ -157,8 +193,15 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
             <div className="grid grid-cols-2 gap-4">
               <FiField label="Canal">
                 <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="fi-input">
-                  {TYPES.map(t => <option key={t.id} value={t.id}>{t.emoji} {t.label}</option>)}
+                  {TYPES.map(t => (
+                    <option key={t.id} value={t.id} disabled={!t.available}>
+                      {t.emoji} {t.label}{!t.available ? ' (no disponible)' : ''}
+                    </option>
+                  ))}
                 </select>
+                {form.type === 'email' && !emailConfigured && (
+                  <p style={{ color: '#EF4444', fontSize: 11, marginTop: 4 }}>Configura RESEND_API_KEY en Coolify para activar emails</p>
+                )}
               </FiField>
               <FiField label="Audiencia">
                 <select value={form.segment} onChange={e => setForm(p => ({ ...p, segment: e.target.value }))} className="fi-input">
@@ -186,7 +229,7 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
       ) : (
         <div className="space-y-3">
           {campaigns.map(campaign => {
-            const seg = SEGMENTS.find(s => s.id === campaign.segment)
+            const seg  = SEGMENTS.find(s => s.id === campaign.segment)
             const type = TYPES.find(t => t.id === campaign.type)
             const isSent = campaign.status === 'sent'
             return (
@@ -205,11 +248,12 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
                     <p style={{ color: 'var(--fi-text-muted)', fontSize: 13, marginBottom: 10, lineHeight: 1.5 }}>{campaign.message}</p>
                     <div className="flex flex-wrap gap-3">
                       <span style={{ color: seg?.color, fontSize: 12, fontWeight: 500 }}>{seg?.label}</span>
+                      <span style={{ color: 'var(--fi-text-muted)', fontSize: 12 }}>{type?.label}</span>
                       {isSent && (
                         <>
                           <span style={{ color: 'var(--fi-text-muted)', fontSize: 12 }}>
                             <BarChart2 style={{ width: 12, height: 12, display: 'inline', marginRight: 3 }} />
-                            {campaign.sent_count} enviados
+                            {campaign.sent_count} {campaign.type === 'push' ? 'tarjetas' : 'emails'}
                           </span>
                           {campaign.sent_at && (
                             <span style={{ color: 'var(--fi-text-muted)', fontSize: 12 }}>
@@ -224,8 +268,9 @@ export default function MarketingManager({ initialCampaigns, customerCounts }: P
                     {!isSent && (
                       <button
                         onClick={() => handleSend(campaign)}
-                        disabled={sending === campaign.id}
-                        style={{ touchAction: 'manipulation', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'var(--fi-accent)', border: 'none', color: accentText, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sending === campaign.id ? 0.7 : 1 }}
+                        disabled={sending === campaign.id || (campaign.type === 'email' && !emailConfigured)}
+                        title={campaign.type === 'email' && !emailConfigured ? 'Configura RESEND_API_KEY en Coolify' : undefined}
+                        style={{ touchAction: 'manipulation', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'var(--fi-accent)', border: 'none', color: accentText, fontSize: 12, fontWeight: 600, cursor: (campaign.type === 'email' && !emailConfigured) ? 'not-allowed' : 'pointer', opacity: (sending === campaign.id || (campaign.type === 'email' && !emailConfigured)) ? 0.5 : 1 }}
                       >
                         <Send style={{ width: 13, height: 13 }} />
                         {sending === campaign.id ? 'Enviando...' : 'Enviar'}

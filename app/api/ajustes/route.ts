@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
 import { parseThemeConfig } from '@/lib/themeConfig'
+import { pushPassUpdate } from '@/lib/wallet/apns'
 import {
   loadGoogleCreds, getAccessToken,
   classId, buildClassPayload,
@@ -63,6 +64,22 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // If geo settings changed and geo is enabled, refresh all customer passes so iOS picks up the new location
+  const GEO_FIELDS = ['geo_enabled', 'geo_lat', 'geo_lng', 'geo_message', 'geo_radius_meters']
+  if (GEO_FIELDS.some(k => k in payload) && data.geo_enabled) {
+    ;(async () => {
+      try {
+        const { data: customers } = await supabase.from('customers').select('id').eq('owner_id', user.id)
+        if (customers?.length) {
+          await Promise.allSettled(customers.map(c => pushPassUpdate(c.id)))
+          console.log(`[Geo] Refreshed passes for ${customers.length} customers`)
+        }
+      } catch (e: any) {
+        console.warn('[Geo] Pass refresh failed:', e.message)
+      }
+    })()
+  }
 
   // Sync Google Wallet loyalty class with updated business settings (fire-and-forget)
   try {
