@@ -268,6 +268,16 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     { key: 'url',  label: 'Tu tarjeta digital', value: cardUrl }
   )
 
+  // Campaign promo message — when set, iOS shows a visible notification on the lock screen
+  if (customer.last_promo_message) {
+    pass.backFields.push({
+      key:           'promo',
+      label:         'Mensaje de tu tienda',
+      value:         customer.last_promo_message,
+      changeMessage: '%@',
+    })
+  }
+
   pass.setBarcodes({ message: cardUrl, format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' })
 
   // Native Apple Wallet location alert — fires automatically when customer is nearby

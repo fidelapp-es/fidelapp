@@ -21,8 +21,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     body.sent_at    = new Date().toISOString()
 
     if (type === 'push') {
-      // Send APNS silent push to all customers in segment — iOS re-downloads the updated pass
+      // Write campaign message to each customer's last_promo_message so iOS shows
+      // a visible lock-screen notification when the pass field changes
       ;(async () => {
+        const ids = customers.map(c => c.id)
+        await supabase
+          .from('customers')
+          .update({ last_promo_message: campaign?.message, updated_at: new Date().toISOString() })
+          .in('id', ids)
+
         const results = await Promise.allSettled(customers.map(c => pushPassUpdate(c.id)))
         const ok  = results.filter(r => r.status === 'fulfilled').length
         const err = results.filter(r => r.status === 'rejected').length
