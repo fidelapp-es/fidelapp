@@ -200,11 +200,29 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     }
   }
 
-  const icon1x = makeSolidPNG(29, 29, accentHex)
-  const icon2x = makeSolidPNG(58, 58, accentHex)
   const logoBuffer = walletLogoUrl
     ? (await fetchWithTimeout(walletLogoUrl)) ?? makeSolidPNG(160, 50, accentHex)
     : makeSolidPNG(160, 50, accentHex)
+
+  // Use the business logo as the pass icon (shown in notifications and lock screen)
+  // Resize to square with accent background so it looks clean at small sizes
+  let icon1x: Buffer, icon2x: Buffer
+  if (walletLogoUrl && logoBuffer.length > 100) {
+    try {
+      icon2x = await sharp(logoBuffer)
+        .resize(58, 58, { fit: 'contain', background: accentHex })
+        .png().toBuffer()
+      icon1x = await sharp(logoBuffer)
+        .resize(29, 29, { fit: 'contain', background: accentHex })
+        .png().toBuffer()
+    } catch {
+      icon1x = makeSolidPNG(29, 29, accentHex)
+      icon2x = makeSolidPNG(58, 58, accentHex)
+    }
+  } else {
+    icon1x = makeSolidPNG(29, 29, accentHex)
+    icon2x = makeSolidPNG(58, 58, accentHex)
+  }
 
   const wwdr       = loadCert('APPLE_WWDR_CERT',   'wwdr.pem')
   const signerCert = loadCert('APPLE_SIGNER_CERT', 'signerCert.pem')
