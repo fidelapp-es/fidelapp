@@ -138,6 +138,40 @@ function buildStripSVG(
   </svg>`
 }
 
+// ── Stamp overlay SVG (transparent bg — composited on top of custom strip) ───
+function buildStampsOverlaySVG(
+  iconKey: string,
+  stampsCollected: number,
+  stampsRequired: number,
+  W = 750, H = 246,
+): string {
+  const iconPath = getIcon(iconKey).d
+  const n    = Math.min(stampsRequired, 15)
+  const r    = n <= 8 ? 26 : n <= 10 ? 22 : n <= 12 ? 19 : 16
+  const gap  = n <= 8 ? 16 : n <= 10 ? 12 : 8
+  const diam = r * 2
+  const totalW = n * diam + (n - 1) * gap
+  const startX = (W - totalW) / 2 + r
+  const stampY = 192
+
+  const stamps = Array.from({ length: n }, (_, i) => {
+    const filled = i < stampsCollected
+    const cx     = startX + i * (diam + gap)
+    const circFill   = filled ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.25)'
+    const circStroke = `rgba(255,255,255,${filled ? '0.7' : '0.3'})`
+    const iconOp = filled ? '0.95' : '0.25'
+    const scale  = (r * 1.1) / 12
+    const off    = -12 * scale
+    return `
+      <circle cx="${cx}" cy="${stampY}" r="${r}" fill="${circFill}" stroke="${circStroke}" stroke-width="1.5"/>
+      <g transform="translate(${cx + off}, ${stampY + off}) scale(${scale.toFixed(3)})">
+        <path d="${iconPath}" fill="rgba(255,255,255,${iconOp})"/>
+      </g>`
+  }).join('')
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${stamps}</svg>`
+}
+
 // ── Cert loader: env var (production) → filesystem (local dev) ───────────────
 function loadCert(envVar: string, filename: string): Buffer {
   const b64 = process.env[envVar]
@@ -197,15 +231,26 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
     primaryValue = `${stampsCollected}/${stampsRequired}`; primaryLabel = 'SELLOS'
   }
 
+  // Compute stamp fill for strip (shared by both paths)
+  const stripFilled = cardType === 'stamps'
+    ? stampsCollected
+    : cardType === 'points'
+      ? (customer.points || 0) % stampsRequired
+      : Math.floor(customer.cashback_balance || 0) % stampsRequired
+
   // Strip image: use custom uploaded image OR generate from SVG
   let strip1x: Buffer, strip2x: Buffer
   if (walletStrip) {
-    // Use custom strip image uploaded by the user
+    // Use custom strip image uploaded by the user, then composite stamps on top
     const customBuf = await fetchWithTimeout(walletStrip)
     if (customBuf) {
       try {
-        strip2x = await sharp(customBuf).resize(750, 246, { fit: 'cover' }).png().toBuffer()
-        strip1x = await sharp(customBuf).resize(375, 123, { fit: 'cover' }).png().toBuffer()
+        const base2x = await sharp(customBuf).resize(750, 246, { fit: 'cover' }).png().toBuffer()
+        const overlaySvg = buildStampsOverlaySVG(walletIcon, stripFilled, stampsRequired, 750, 246)
+        strip2x = await sharp(base2x)
+          .composite([{ input: Buffer.from(overlaySvg), top: 0, left: 0 }])
+          .png().toBuffer()
+        strip1x = await sharp(strip2x).resize(375, 123).png().toBuffer()
       } catch {
         strip2x = customBuf
         strip1x = customBuf
@@ -215,13 +260,6 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
       strip2x = makeSolidPNG(750, 246, accentHex)
     }
   } else {
-    // Compute visual stamp progress for the strip (works for all card types)
-    const stripFilled = cardType === 'stamps'
-      ? stampsCollected
-      : cardType === 'points'
-        ? (customer.points || 0) % stampsRequired
-        : Math.floor(customer.cashback_balance || 0) % stampsRequired
-
     // Auto-generate strip from SVG with design settings
     const svg = buildStripSVG(walletHeader, accentHex, accentDeep, walletIcon, stripFilled, stampsRequired)
     try {
