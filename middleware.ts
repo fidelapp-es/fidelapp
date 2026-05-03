@@ -3,20 +3,38 @@ import { createMiddlewareClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request)
-
-  // Refresca la sesión automáticamente (necesario para SSR)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isProtected = request.nextUrl.pathname.startsWith('/dashboard')
+  const path = request.nextUrl.pathname
+  const isDashboard = path.startsWith('/dashboard')
+  const isOnboarding = path.startsWith('/onboarding')
 
-  if (isProtected && !user) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
-    return NextResponse.redirect(loginUrl)
+  if (!user) {
+    if (isDashboard) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirectTo', path)
+      return NextResponse.redirect(loginUrl)
+    }
+    return response
+  }
+
+  // Usuario autenticado — comprobar estado del onboarding
+  if (isDashboard || isOnboarding) {
+    const { data: settings } = await supabase
+      .from('settings').select('onboarding_completed').eq('id', user.id).maybeSingle()
+
+    const completed = settings?.onboarding_completed === true
+
+    if (isDashboard && !completed) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+    if (isOnboarding && completed) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   // Si ya está autenticado e intenta ir a /login → redirigir al dashboard
-  if (user && request.nextUrl.pathname === '/login') {
+  if (user && path === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -24,8 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/login',
-  ],
+  matcher: ['/dashboard/:path*', '/onboarding/:path*', '/onboarding', '/login'],
 }

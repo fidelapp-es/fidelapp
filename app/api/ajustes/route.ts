@@ -17,6 +17,11 @@ const BASE_COLS = new Set([
   'geo_lat', 'geo_lng', 'geo_radius_meters', 'geo_message', 'geo_enabled',
   'billing_name', 'billing_cif', 'billing_address',
   'theme',   // ← stores ALL visual config as JSON (mode, accent, wallet design)
+  // Onboarding columns
+  'onboarding_completed', 'onboarding_step',
+  'contact_name', 'contact_role', 'contact_phone', 'contact_avatar_url',
+  'business_category', 'business_city', 'business_postal_code', 'business_website',
+  'secondary_color',
 ])
 
 export async function GET() {
