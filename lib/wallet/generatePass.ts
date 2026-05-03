@@ -79,9 +79,35 @@ function buildStripSVG(
   accent: string,
   accentDeep: string,
   iconKey: string = 'coffee',
+  stampsCollected: number = 0,
+  stampsRequired: number = 10,
 ): string {
   const W = 750, H = 246
   const iconPath = getIcon(iconKey).d
+
+  // Stamp grid layout — cap at 15 for readability
+  const n   = Math.min(stampsRequired, 15)
+  const r   = n <= 8 ? 26 : n <= 10 ? 22 : n <= 12 ? 19 : 16
+  const gap = n <= 8 ? 16 : n <= 10 ? 12 : 8
+  const diam = r * 2
+  const totalW = n * diam + (n - 1) * gap
+  const startX = (W - totalW) / 2 + r
+  const stampY = 192
+
+  const stamps = Array.from({ length: n }, (_, i) => {
+    const filled = i < stampsCollected
+    const cx     = startX + i * (diam + gap)
+    const iconOp = filled ? '0.95' : '0.18'
+    const circFill   = filled ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.05)'
+    const circStroke = `rgba(255,255,255,${filled ? '0.55' : '0.18'})`
+    const scale  = (r * 1.1) / 12   // scale icon path (24×24 viewBox → fits in circle)
+    const off    = -12 * scale
+    return `
+      <circle cx="${cx}" cy="${stampY}" r="${r}" fill="${circFill}" stroke="${circStroke}" stroke-width="1.5"/>
+      <g transform="translate(${cx + off}, ${stampY + off}) scale(${scale.toFixed(3)})">
+        <path d="${iconPath}" fill="rgba(255,255,255,${iconOp})"/>
+      </g>`
+  }).join('')
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <defs>
@@ -90,25 +116,25 @@ function buildStripSVG(
         <stop offset="100%" stop-color="${accentDeep}"/>
       </linearGradient>
       <radialGradient id="glow" cx="15%" cy="80%" r="55%">
-        <stop offset="0%" stop-color="${accent}" stop-opacity="0.5"/>
+        <stop offset="0%" stop-color="${accent}" stop-opacity="0.4"/>
         <stop offset="100%" stop-color="transparent"/>
       </radialGradient>
     </defs>
     <rect width="${W}" height="${H}" fill="url(#bg)"/>
     <rect width="${W}" height="${H}" fill="url(#glow)"/>
-    <circle cx="${W + 60}" cy="-60" r="180" fill="rgba(255,255,255,0.05)"/>
-    <circle cx="-60" cy="${H + 60}" r="160" fill="rgba(0,0,0,0.1)"/>
-    <g transform="translate(685, 18) scale(2.0)" opacity="0.5">
-      <path d="${iconPath}" fill="rgba(240,232,216,0.9)"/>
+    <circle cx="${W + 60}" cy="-60" r="180" fill="rgba(255,255,255,0.04)"/>
+    <g transform="translate(672, 14) scale(1.8)" opacity="0.25">
+      <path d="${iconPath}" fill="rgba(240,232,216,1)"/>
     </g>
-    <text x="40" y="148"
+    <text x="40" y="108"
       font-family="Georgia, 'Times New Roman', serif"
-      font-size="52" font-weight="bold" letter-spacing="6"
-      fill="rgba(240,232,216,0.92)">${businessName.toUpperCase().slice(0, 12)}</text>
-    <text x="42" y="180"
+      font-size="44" font-weight="bold" letter-spacing="5"
+      fill="rgba(240,232,216,0.92)">${businessName.toUpperCase().slice(0, 14)}</text>
+    <text x="42" y="136"
       font-family="Arial, sans-serif"
-      font-size="16" font-weight="300" letter-spacing="4"
-      fill="rgba(240,232,216,0.5)">PROGRAMA DE FIDELIZACIÓN</text>
+      font-size="15" font-weight="300" letter-spacing="4"
+      fill="rgba(240,232,216,0.45)">PROGRAMA DE FIDELIZACIÓN</text>
+    ${stamps}
   </svg>`
 }
 
@@ -189,8 +215,15 @@ export async function generatePassBuffer(customerId: string): Promise<Buffer> {
       strip2x = makeSolidPNG(750, 246, accentHex)
     }
   } else {
+    // Compute visual stamp progress for the strip (works for all card types)
+    const stripFilled = cardType === 'stamps'
+      ? stampsCollected
+      : cardType === 'points'
+        ? (customer.points || 0) % stampsRequired
+        : Math.floor(customer.cashback_balance || 0) % stampsRequired
+
     // Auto-generate strip from SVG with design settings
-    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, walletIcon)
+    const svg = buildStripSVG(walletHeader, accentHex, accentDeep, walletIcon, stripFilled, stampsRequired)
     try {
       strip2x = await sharp(Buffer.from(svg)).png().toBuffer()
       strip1x = await sharp(strip2x).resize(375, 123).png().toBuffer()

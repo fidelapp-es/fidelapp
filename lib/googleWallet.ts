@@ -75,16 +75,22 @@ export function buildObjectPayload(
   cardUrl: string,
   settings?: any,
 ) {
-  const stampsCollected = (customer.visits_count || 0) % stampsRequired
+  const stampsCollected = cardType === 'stamps'
+    ? (customer.visits_count || 0) % stampsRequired
+    : cardType === 'points'
+      ? (customer.points || 0) % stampsRequired
+      : Math.floor(customer.cashback_balance || 0) % stampsRequired
 
-  let pointsLabel = 'Puntos'
-  let pointsValue = ''
-  if (cardType === 'points') {
-    pointsLabel = 'Puntos'; pointsValue = String(customer.points || 0)
-  } else if (cardType === 'cashback') {
-    pointsLabel = 'Cashback'; pointsValue = `${Number(customer.cashback_balance || 0).toFixed(2)}€`
-  } else {
-    pointsLabel = 'Sellos'; pointsValue = `${stampsCollected}/${stampsRequired}`
+  // Visual stamp bar using Unicode circles: ●●●○○○
+  const stampBar = Array.from({ length: Math.min(stampsRequired, 15) }, (_, i) =>
+    i < stampsCollected ? '●' : '○'
+  ).join('')
+
+  let pointsLabel = 'Sellos'
+  let pointsValue = stampBar
+  if (cardType === 'cashback') {
+    pointsLabel = 'Cashback'
+    pointsValue = `${Number(customer.cashback_balance || 0).toFixed(2)}€`
   }
 
   const obj: Record<string, any> = {
