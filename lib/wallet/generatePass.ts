@@ -94,17 +94,20 @@ function buildStripSVG(
   const startX = (W - totalW) / 2 + r
   const stampY = 192
 
+  // Icon scale: corners must stay inside circle. icon is 24×24 → half=12.
+  // corner dist from center = scale*12*√2 < r  →  scale < r/16.97
+  // Use 55% of max to leave visible margin inside the circle.
+  const iconScale = (r / 16.97 * 0.55).toFixed(3)
+
   const stamps = Array.from({ length: n }, (_, i) => {
     const filled = i < stampsCollected
     const cx     = startX + i * (diam + gap)
     const iconOp = filled ? '0.95' : '0.18'
     const circFill   = filled ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.05)'
     const circStroke = `rgba(255,255,255,${filled ? '0.55' : '0.18'})`
-    const scale  = (r * 1.1) / 12   // scale icon path (24×24 viewBox → fits in circle)
-    const off    = -12 * scale
     return `
       <circle cx="${cx}" cy="${stampY}" r="${r}" fill="${circFill}" stroke="${circStroke}" stroke-width="1.5"/>
-      <g transform="translate(${cx + off}, ${stampY + off}) scale(${scale.toFixed(3)})">
+      <g transform="translate(${cx},${stampY}) scale(${iconScale}) translate(-12,-12)">
         <path d="${iconPath}" fill="rgba(255,255,255,${iconOp})"/>
       </g>`
   }).join('')
@@ -154,17 +157,17 @@ function buildStampsOverlaySVG(
   const startX = (W - totalW) / 2 + r
   const stampY = 192
 
+  const iconScale = (r / 16.97 * 0.55).toFixed(3)
+
   const stamps = Array.from({ length: n }, (_, i) => {
     const filled = i < stampsCollected
     const cx     = startX + i * (diam + gap)
     const circFill   = filled ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.25)'
     const circStroke = `rgba(255,255,255,${filled ? '0.7' : '0.3'})`
     const iconOp = filled ? '0.95' : '0.25'
-    const scale  = (r * 1.1) / 12
-    const off    = -12 * scale
     return `
       <circle cx="${cx}" cy="${stampY}" r="${r}" fill="${circFill}" stroke="${circStroke}" stroke-width="1.5"/>
-      <g transform="translate(${cx + off}, ${stampY + off}) scale(${scale.toFixed(3)})">
+      <g transform="translate(${cx},${stampY}) scale(${iconScale}) translate(-12,-12)">
         <path d="${iconPath}" fill="rgba(255,255,255,${iconOp})"/>
       </g>`
   }).join('')
