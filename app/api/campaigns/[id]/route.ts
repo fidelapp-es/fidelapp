@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/supabase/server'
 import { pushPassUpdate } from '@/lib/wallet/apns'
+import { getServiceClient } from '@/lib/supabase'
 import { Resend } from 'resend'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,55 +12,71 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
 
   if (body.status === 'sent') {
-    // Get full campaign to know its type and message
     const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', id).single()
     const segment = body.segment || campaign?.segment || 'all'
     const type    = campaign?.type || 'push'
 
-    const customers = await getSegmentCustomers(supabase, segment)
+    const customers = await getSegmentCustomers(supabase, user.id, segment)
     body.sent_count = customers.length
     body.sent_at    = new Date().toISOString()
 
     if (type === 'push') {
-      // Write campaign message to each customer's last_promo_message so iOS shows
-      // a visible lock-screen notification when the pass field changes
-      ;(async () => {
-        const ids = customers.map(c => c.id)
-        await supabase
-          .from('customers')
-          .update({ last_promo_message: campaign?.message, updated_at: new Date().toISOString() })
-          .in('id', ids)
+      const ids = customers.map(c => c.id)
 
-        const results = await Promise.allSettled(customers.map(c => pushPassUpdate(c.id)))
+      // Write campaign message so iOS shows a visible notification on pass update
+      const { error: updateErr } = await supabase
+        .from('customers')
+        .update({ last_promo_message: campaign?.message, updated_at: new Date().toISOString() })
+        .in('id', ids)
+        .eq('owner_id', user.id)
+
+      if (updateErr) console.error('[Campaign push] Failed to write last_promo_message:', updateErr.message)
+
+      // Check how many customers actually have registered devices
+      const sb = getServiceClient()
+      const passTypeId = process.env.PASS_TYPE_ID || 'pass.es.fidelapp.loyalty'
+      const { data: regs } = await sb
+        .from('pass_registrations')
+        .select('serial_number, push_token')
+        .in('serial_number', ids)
+        .eq('pass_type_id', passTypeId)
+
+      const registered = regs ?? []
+      console.log(`[Campaign push] Customers in segment: ${ids.length}, with registered wallet: ${registered.length}`)
+
+      if (registered.length === 0) {
+        console.warn('[Campaign push] No devices registered — no push sent. Customers may not have added the pass to Apple Wallet.')
+        body.sent_count = 0
+      } else {
+        // Send to unique customers that have registrations
+        const customerIdsWithWallet = [...new Set(registered.map(r => r.serial_number))]
+        const results = await Promise.allSettled(customerIdsWithWallet.map(cid => pushPassUpdate(cid)))
         const ok  = results.filter(r => r.status === 'fulfilled').length
         const err = results.filter(r => r.status === 'rejected').length
-        console.log(`[Campaign push] Sent: ${ok}, Failed: ${err}`)
-      })()
+        console.log(`[Campaign push] Push sent: ${ok}, failed: ${err}`)
+        body.sent_count = ok
+      }
+
     } else if (type === 'email') {
       const apiKey = process.env.RESEND_API_KEY
       if (apiKey) {
         const { data: settings } = await supabase
-          .from('settings').select('business_name, business_email').eq('id', user.id).maybeSingle()
+          .from('settings').select('business_name').eq('id', user.id).maybeSingle()
         const fromName  = settings?.business_name || 'Fidelapp'
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@fidelapp.es'
-
-        ;(async () => {
-          const resend = new Resend(apiKey)
-          const withEmail = customers.filter(c => c.email)
-          const results = await Promise.allSettled(withEmail.map(c =>
-            resend.emails.send({
-              from: `${fromName} <${fromEmail}>`,
-              to:   c.email,
-              subject: campaign?.title || 'Mensaje de tu tarjeta de fidelización',
-              html: buildEmailHtml(c.name, campaign?.message || '', fromName),
-            })
-          ))
-          const ok  = results.filter(r => r.status === 'fulfilled').length
-          const err = results.filter(r => r.status === 'rejected').length
-          console.log(`[Campaign email] Sent: ${ok}, Failed: ${err}`)
-        })()
-
-        body.sent_count = customers.filter(c => c.email).length
+        const resend = new Resend(apiKey)
+        const withEmail = customers.filter(c => c.email)
+        const results = await Promise.allSettled(withEmail.map(c =>
+          resend.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to:   c.email,
+            subject: campaign?.title || 'Mensaje de tu tarjeta de fidelización',
+            html: buildEmailHtml(c.name, campaign?.message || '', fromName),
+          })
+        ))
+        const ok = results.filter(r => r.status === 'fulfilled').length
+        console.log(`[Campaign email] Sent: ${ok}/${withEmail.length}`)
+        body.sent_count = ok
       } else {
         console.warn('[Campaign email] RESEND_API_KEY not configured')
       }
@@ -75,13 +92,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
   const { supabase, user } = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
   await supabase.from('campaigns').delete().eq('id', id)
   return NextResponse.json({ ok: true })
 }
 
-async function getSegmentCustomers(supabase: any, segment: string): Promise<{ id: string; email: string; name: string }[]> {
-  let q = supabase.from('customers').select('id, email, name')
+async function getSegmentCustomers(
+  supabase: any,
+  ownerId: string,
+  segment: string,
+): Promise<{ id: string; email: string; name: string }[]> {
+  let q = supabase.from('customers').select('id, email, name').eq('owner_id', ownerId)
   if (segment === 'vip')      q = q.gte('points', 200)
   else if (segment === 'oro') q = q.gte('points', 100).lt('points', 200)
   else if (segment === 'new') q = q.lt('points', 20)
