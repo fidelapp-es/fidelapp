@@ -22,19 +22,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (type === 'push') {
       const ids = customers.map(c => c.id)
+      const sb = getServiceClient()
+      const passTypeId = process.env.PASS_TYPE_ID || 'pass.es.fidelapp.loyalty'
 
-      // Write campaign message so iOS shows a visible notification on pass update
-      const { error: updateErr } = await supabase
+      // Write campaign message using service client (bypasses RLS) so iOS shows
+      // a visible lock-screen notification when the pass field changes
+      const { error: updateErr } = await sb
         .from('customers')
         .update({ last_promo_message: campaign?.message, updated_at: new Date().toISOString() })
         .in('id', ids)
         .eq('owner_id', user.id)
 
       if (updateErr) console.error('[Campaign push] Failed to write last_promo_message:', updateErr.message)
+      else console.log(`[Campaign push] last_promo_message set for ${ids.length} customers`)
 
       // Check how many customers actually have registered devices
-      const sb = getServiceClient()
-      const passTypeId = process.env.PASS_TYPE_ID || 'pass.es.fidelapp.loyalty'
       const { data: regs } = await sb
         .from('pass_registrations')
         .select('serial_number, push_token')
