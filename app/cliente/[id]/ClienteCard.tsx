@@ -40,7 +40,9 @@ export default function ClienteCard({ customer, promotions, settings, cardUrl }:
   const cardType = settings?.card_type || 'points'
   const businessName = settings?.business_name || 'Fidelapp'
   const stampsRequired = settings?.stamps_required || 10
-  const stampsCollected = (customer.visits_count || 0) % stampsRequired
+  const stampsCollected = cardType === 'stamps'
+    ? (customer.visits_count || 0) % stampsRequired
+    : (customer.points || 0) % stampsRequired
   const cashbackBalance = customer.cashback_balance || 0
   const nextPromotion = promotions.find(p => p.points_required > customer.points)
   const pointsToNext = nextPromotion ? nextPromotion.points_required - customer.points : 0
@@ -132,19 +134,42 @@ export default function ClienteCard({ customer, promotions, settings, cardUrl }:
       {/* Métrica principal */}
       <div className="glass-strong" style={{ width: '100%', maxWidth: 384, borderRadius: 20, padding: 20, position: 'relative', zIndex: 10 }}>
         {cardType === 'points' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 4 }}>
-              <Star size={20} style={{ color: 'var(--fi-accent)', fill: 'var(--fi-accent)' }} />
-              <span style={{ fontSize: 48, fontWeight: 700, color: 'var(--fi-accent)', lineHeight: 1 }}>{customer.points}</span>
-              <Star size={20} style={{ color: 'var(--fi-accent)', fill: 'var(--fi-accent)' }} />
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 14 }}>
+              {Array.from({ length: stampsRequired }).map((_, i) => {
+                const filled = i < stampsCollected
+                return (
+                  <div key={i} style={{
+                    width: 42, height: 42, borderRadius: '50%',
+                    background: filled ? 'var(--fi-accent)' : 'var(--fi-glass)',
+                    border: `2px solid ${filled ? 'var(--fi-accent)' : 'var(--fi-border)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.25s',
+                    boxShadow: filled ? '0 2px 10px rgba(0,0,0,0.2)' : 'none',
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                      fill={filled ? '#fff' : 'var(--fi-text-muted)'}
+                      style={{ opacity: filled ? 1 : 0.3 }}>
+                      <path d={sectorIcon.d} />
+                    </svg>
+                  </div>
+                )
+              })}
             </div>
-            <p style={{ color: 'var(--fi-text-muted)', fontSize: 13, margin: 0 }}>puntos acumulados</p>
+            <p style={{ color: 'var(--fi-text-muted)', fontSize: 13, textAlign: 'center', margin: 0 }}>
+              {stampsCollected} / {stampsRequired} · {customer.points} puntos totales
+            </p>
+            {stampsCollected >= stampsRequired - 1 && customer.points > 0 && (
+              <p style={{ color: '#10B981', fontSize: 14, fontWeight: 600, textAlign: 'center', marginTop: 8 }}>
+                🎉 ¡Tarjeta completada!
+              </p>
+            )}
             {nextPromotion && (
               <div style={{ marginTop: 14 }}>
                 <div style={{ height: 6, background: 'var(--fi-glass)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
                   <div style={{ height: '100%', width: `${progress}%`, background: 'var(--fi-accent)', borderRadius: 99, transition: 'width 0.4s' }} />
                 </div>
-                <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, margin: 0 }}>
+                <p style={{ color: 'var(--fi-text-muted)', fontSize: 12, margin: 0, textAlign: 'center' }}>
                   Te faltan <span style={{ color: 'var(--fi-accent)', fontWeight: 600 }}>{pointsToNext} puntos</span> para {nextPromotion.title}
                 </p>
               </div>
